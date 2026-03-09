@@ -1,0 +1,16 @@
+app_name: AI Safety Lab
+default_output_dir: runs
+allow_ultimate_judge_raw_transcript: false
+providers:
+  judge1:
+    backend: openai
+    model: gpt-4.1-mini
+  judge2:
+    backend: claude
+    model: claude-3-7-sonnet-latest
+  judge3:
+    backend: gemini
+    model: gemini-2.0-flash
+  ultimate_judge:
+    backend: openai
+    model: gpt-4.1-mini
