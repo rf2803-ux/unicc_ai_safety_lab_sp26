@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from ai_safety_lab.clients import ProviderResponseError
 from ai_safety_lab.final_judge import UltimateJudge
 from ai_safety_lab.judges import Judge1, Judge2, Judge3
 from ai_safety_lab.reporting.make_report_pdf import generate_report_pdf
@@ -39,7 +40,12 @@ def evaluate_case(case_file: CaseFile, settings: AppConfig) -> RunResult:
     judge_output_paths: dict[str, Path] = {}
     for judge_id, judge_cls, provider in judge_specs:
         judge = judge_cls(backend=provider.backend, model=provider.model)
-        output = judge.evaluate(case_file)
+        try:
+            output = judge.evaluate(case_file)
+        except ProviderResponseError as exc:
+            raise ProviderResponseError(
+                f"{judge_id} ({provider.backend}/{provider.model}) failed: {exc}"
+            ) from exc
         judge_outputs.append(output)
         output_path = run_dir / f"{judge_id}.json"
         write_json(output_path, output.model_dump(mode="json"))
@@ -47,7 +53,12 @@ def evaluate_case(case_file: CaseFile, settings: AppConfig) -> RunResult:
 
     ultimate_provider = settings.providers["ultimate_judge"]
     ultimate_judge = UltimateJudge(backend=ultimate_provider.backend, model=ultimate_provider.model)
-    final_output = ultimate_judge.evaluate(judge_outputs)
+    try:
+        final_output = ultimate_judge.evaluate(judge_outputs)
+    except ProviderResponseError as exc:
+        raise ProviderResponseError(
+            f"ultimate_judge ({ultimate_provider.backend}/{ultimate_provider.model}) failed: {exc}"
+        ) from exc
     final_judge_path = run_dir / "final_judge.json"
     write_json(final_judge_path, final_output.model_dump(mode="json"))
 

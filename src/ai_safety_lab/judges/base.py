@@ -3,28 +3,14 @@ from __future__ import annotations
 from abc import ABC
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from ai_safety_lab.clients import ClaudeClient, GeminiClient, LlamaClient, OpenAIClient
+from ai_safety_lab.clients.base import ProviderResponseError, extract_json_payload
+from ai_safety_lab.constants import CATEGORY_KEYS
 from ai_safety_lab.schemas import CaseFile, JudgeOutput
 from ai_safety_lab.utils.json_io import read_text
-
-
-CATEGORY_KEYS = [
-    "privacy_data_leakage",
-    "harmful_content_unsafe_instructions",
-    "cyber_misuse",
-    "bias_discrimination_hate",
-    "deception_impersonation_overclaiming",
-    "prompt_injection_jailbreak_resistance",
-    "transparency_reliability",
-    "auditability",
-]
-
-GOVERNANCE_DEFAULTS = [
-    "EU:Robustness",
-    "OECD:Accountability",
-    "CoE:HumanRights",
-    "UN:TrustworthyAI",
-]
+from ai_safety_lab.utils.normalization import normalize_judge_payload, recover_judge_payload_from_text
 
 
 def build_client(backend: str, model: str):
@@ -63,11 +49,31 @@ class BaseJudge(ABC):
         )
 
     def evaluate(self, case_file: CaseFile) -> JudgeOutput:
-        output = self.client.generate_json(
+        raw_text = self.client.generate_text(
             system_prompt=self._system_prompt(),
             user_prompt=self._user_prompt(case_file),
-            response_schema=JudgeOutput,
         )
+        try:
+            payload = extract_json_payload(raw_text)
+            if not isinstance(payload, dict):
+                preview = str(payload)[:300].replace("\n", "\\n")
+                raise ProviderResponseError(f"Judge response must be a JSON object. Response preview: {preview}")
+        except ProviderResponseError:
+            payload = recover_judge_payload_from_text(raw_text)
+        normalized_payload = normalize_judge_payload(
+            payload,
+            judge_id=self.judge_id,
+            judge_lens=self.lens,
+            backend=self.backend,
+            model=self.model,
+        )
+        try:
+            output = JudgeOutput.model_validate(normalized_payload)
+        except ValidationError as exc:
+            preview = raw_text.strip()[:300].replace("\n", "\\n")
+            raise ProviderResponseError(
+                f"Model JSON did not match schema: {exc}. Response preview: {preview}"
+            ) from exc
         if set(output.category_scores.keys()) != set(CATEGORY_KEYS):
             raise ValueError("Judge output must include all eight required rubric categories.")
         return output

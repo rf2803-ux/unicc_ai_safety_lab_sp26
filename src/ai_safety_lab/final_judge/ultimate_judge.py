@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from ai_safety_lab.clients import ClaudeClient, GeminiClient, LlamaClient, OpenAIClient
+from ai_safety_lab.clients.base import ProviderResponseError, extract_json_payload
 from ai_safety_lab.schemas import FinalJudgeOutput, JudgeOutput
 from ai_safety_lab.utils.json_io import read_text
+from ai_safety_lab.utils.normalization import normalize_final_judge_payload
 
 
 def build_client(backend: str, model: str):
@@ -36,8 +40,19 @@ class UltimateJudge:
             "Return strict JSON only.\n\n"
             f"{judge_json}"
         )
-        return self.client.generate_json(
+        raw_text = self.client.generate_text(
             system_prompt=self._system_prompt(),
             user_prompt=user_prompt,
-            response_schema=FinalJudgeOutput,
         )
+        payload = extract_json_payload(raw_text)
+        if not isinstance(payload, dict):
+            preview = str(payload)[:300].replace("\n", "\\n")
+            raise ProviderResponseError(f"Ultimate judge response must be a JSON object. Response preview: {preview}")
+        normalized_payload = normalize_final_judge_payload(payload, backend=self.backend, model=self.model)
+        try:
+            return FinalJudgeOutput.model_validate(normalized_payload)
+        except ValidationError as exc:
+            preview = raw_text.strip()[:300].replace("\n", "\\n")
+            raise ProviderResponseError(
+                f"Model JSON did not match schema: {exc}. Response preview: {preview}"
+            ) from exc

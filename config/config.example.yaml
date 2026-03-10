@@ -7,10 +7,10 @@ providers:
     model: gpt-4.1-mini
   judge2:
     backend: claude
-    model: claude-3-7-sonnet-latest
+    model: claude-sonnet-4-20250514
   judge3:
     backend: gemini
-    model: gemini-2.0-flash
+    model: gemini-2.5-flash
   ultimate_judge:
     backend: openai
     model: gpt-4.1-mini
