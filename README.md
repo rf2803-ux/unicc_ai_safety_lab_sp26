@@ -58,18 +58,6 @@ uv run streamlit run src/ui/app.py
 uv run pytest
 ```
 
-## Share With Teammates
-
-If you want classmates or teammates to use the project without changing your main repository:
-
-1. Push the code to GitHub
-2. Share the repository link with read-only access, or keep the repo public without adding write collaborators
-3. Ask each teammate to:
-   - clone the repo
-   - run `cp .env.example .env`
-   - add their own API keys locally
-   - run the app on their machine
-
 Recommended rule:
 
 - Do not share `.env`
