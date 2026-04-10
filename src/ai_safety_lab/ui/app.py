@@ -16,6 +16,7 @@ from ai_safety_lab.ingestion import (
     system_case_from_repo_extraction,
 )
 from ai_safety_lab.pipeline import evaluate_system_case
+from ai_safety_lab.reporting import final_assessment_view, reviewer_panel_view
 from ai_safety_lab.schemas import CaseFile, SystemCase
 from ai_safety_lab.settings import load_app_config
 
@@ -91,6 +92,50 @@ def _inject_styles() -> None:
         .panel-card p {
             margin: 0.3rem 0;
             color: #30506d;
+        }
+        .decision-card {
+            border: 1px solid #bfd7ef;
+            background: linear-gradient(135deg, #edf5fd 0%, #f8fbff 100%);
+            border-radius: 18px;
+            padding: 1.25rem 1.4rem;
+            margin: 1rem 0 1rem 0;
+            box-shadow: 0 12px 24px rgba(14, 71, 123, 0.08);
+        }
+        .decision-card h3 {
+            margin: 0 0 0.45rem 0;
+            color: #103d67;
+        }
+        .decision-card p {
+            margin: 0.25rem 0;
+            color: #274f73;
+        }
+        .result-card {
+            border: 1px solid #d8e7f7;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1rem 1rem 0.65rem 1rem;
+            min-height: 100%;
+            box-shadow: 0 8px 18px rgba(14, 71, 123, 0.05);
+        }
+        .result-card.final {
+            border: 1px solid #b8d5f1;
+            background: linear-gradient(180deg, #f4f9ff 0%, #ffffff 100%);
+        }
+        .result-card h4 {
+            margin: 0 0 0.35rem 0;
+            color: #123e68;
+        }
+        .result-card .meta {
+            color: #486784;
+            font-size: 0.95rem;
+            margin-bottom: 0.65rem;
+        }
+        .section-card {
+            border: 1px solid #d8e7f7;
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            margin-bottom: 1rem;
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 0.75rem;
@@ -252,29 +297,78 @@ def _render_instructions() -> None:
 
 def render_judge_panel(title: str, payload: dict) -> None:
     st.subheader(title)
-    verdict = payload.get("overall_verdict") or payload.get("final_verdict")
-    score = payload.get("overall_score") if "overall_score" in payload else payload.get("final_score")
-    st.metric("Verdict", verdict)
-    st.metric("Score", score)
-    st.write(f"Confidence: {payload.get('confidence')}")
+    st.write(payload)
 
-    if "top_3_risks" in payload:
-        st.write("Top risks")
-        st.write(payload["top_3_risks"])
-    if "recommended_mitigations" in payload:
-        st.write("Mitigations")
-        st.write(payload["recommended_mitigations"])
-    if "category_scores" in payload:
-        with st.expander("Category scores", expanded=False):
-            st.json(payload["category_scores"])
-    if "agreement_summary" in payload:
-        st.write("Agreement summary")
-        st.json(payload["agreement_summary"])
-        st.write("Key conflicts")
-        st.write(payload["key_conflicts"])
-        st.write("Required actions")
-        st.write(payload["required_actions"])
-        st.write(payload["final_rationale"])
+
+def _render_metric_line(label: str, value: str) -> None:
+    st.markdown(f"**{label}:** {value}")
+
+
+def _render_bullet_section(title: str, items: list[str], empty_text: str) -> None:
+    st.markdown(f"**{title}**")
+    if items:
+        for item in items:
+            st.write(f"- {item}")
+    else:
+        st.write(empty_text)
+
+
+def _render_reviewer_panel(view: dict[str, Any], *, final_panel: bool = False) -> None:
+    card_class = "result-card final" if final_panel else "result-card"
+    st.markdown(
+        f"""
+        <div class="{card_class}">
+            <h4>{view["label"]}</h4>
+            <div class="meta">Verdict: {view["verdict"]} | Risk Score: {view["risk_score"]} | Confidence: {view["confidence"]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if final_panel:
+        _render_metric_line("Risk Level", str(view["risk_level"]))
+        _render_metric_line("Recommendation", str(view["recommendation"]))
+        _render_bullet_section("Main Reasons", list(view["main_reasons"]), "No main reasons were provided.")
+        _render_bullet_section("Required Actions", list(view["required_actions"]), "No required actions were provided.")
+        with st.expander("View Final Assessment Detail", expanded=False):
+            st.write(view["summary"])
+    else:
+        _render_metric_line("Risk Level", str(view["risk_level"]))
+        _render_bullet_section("Key Risks Identified", list(view["key_risks"]), "No key risks were provided.")
+        _render_bullet_section("Recommendations", list(view["mitigations"]), "No recommendations were provided.")
+        with st.expander("View Reviewer Detail", expanded=False):
+            st.write(view["summary"])
+            _render_bullet_section("Category Highlights", list(view["category_highlights"]), "No category highlights were available.")
+            st.markdown("**Detailed Category Notes**")
+            for item in view["category_details"]:
+                st.write(f"- **{item['label']}** (score {item['score']}): {item['rationale']}")
+                for snippet in item["evidence_snippets"]:
+                    st.caption(snippet)
+
+
+def _render_decision_card(view: dict[str, Any]) -> None:
+    st.markdown(
+        f"""
+        <div class="decision-card">
+            <h3>Final Assessment: {view["verdict"]}</h3>
+            <p><strong>Risk Level:</strong> {view["risk_level"]}</p>
+            <p><strong>Confidence:</strong> {view["confidence"]}</p>
+            <p><strong>Recommendation:</strong> {view["recommendation"]}</p>
+            <p>{view["supporting_line"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_alignment_block(view: dict[str, Any]) -> None:
+    alignment = view["alignment"]
+    st.markdown("### Reviewer Alignment")
+    with st.container(border=True):
+        st.write(f"**Reviewer Alignment: {alignment['label']}**")
+        st.write(alignment["summary"])
+        with st.expander("View differences", expanded=False):
+            for item in alignment["details"]:
+                st.write(f"- {item}")
 
 
 def _render_input_preview(bundle: dict[str, Any]) -> None:
@@ -350,15 +444,26 @@ def _render_results() -> None:
     if run_result is None:
         return
     st.success(f"Run completed: {run_result.run_dir}")
+    final_view = final_assessment_view(run_result.final_output, run_result.judge_outputs)
+    reviewer_views = [reviewer_panel_view(output) for output in run_result.judge_outputs]
+
+    _render_decision_card(final_view)
+    st.markdown("### Why this decision was made")
+    with st.container(border=True):
+        for item in final_view["reasons"]:
+            st.write(f"- {item}")
+
+    _render_alignment_block(final_view)
+    st.markdown("### Expert Reviewer Breakdown")
     columns = st.columns(4)
     with columns[0]:
-        render_judge_panel("Judge 1", run_result.judge_outputs[0].model_dump(mode="json"))
+        _render_reviewer_panel(reviewer_views[0])
     with columns[1]:
-        render_judge_panel("Judge 2", run_result.judge_outputs[1].model_dump(mode="json"))
+        _render_reviewer_panel(reviewer_views[1])
     with columns[2]:
-        render_judge_panel("Judge 3", run_result.judge_outputs[2].model_dump(mode="json"))
+        _render_reviewer_panel(reviewer_views[2])
     with columns[3]:
-        render_judge_panel("Ultimate Judge", run_result.final_output.model_dump(mode="json"))
+        _render_reviewer_panel(final_view, final_panel=True)
 
     artifact_names = [path.name for path in run_result.extra_artifact_paths.values()]
     if artifact_names:
