@@ -6,13 +6,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
-from ai_safety_lab.schemas import CaseFile, FinalJudgeOutput, JudgeOutput
+from ai_safety_lab.schemas import FinalJudgeOutput, JudgeOutput, SystemCase
 from ai_safety_lab.settings import AppConfig
 
 
 def generate_report_pdf(
     output_path: Path,
-    case_file: CaseFile,
+    system_case: SystemCase,
     judge_outputs: list[JudgeOutput],
     final_output: FinalJudgeOutput,
     settings: AppConfig,
@@ -29,15 +29,26 @@ def generate_report_pdf(
         story.append(Paragraph(text, styles[style]))
         story.append(Spacer(1, 8))
 
+    model_summary = ", ".join(system_case.capability_profile.model_backends) or "Unknown"
     add_line("AI Safety Lab Report", "Title")
-    add_line(f"Case ID: {case_file.case_id}")
-    add_line(f"Target Model: {case_file.target_model}")
-    add_line(f"Created At: {case_file.created_at.isoformat()}")
+    add_line(f"Case ID: {system_case.case_id}")
+    add_line(f"Target Type: {system_case.target_type}")
+    add_line(f"Target Label: {system_case.title}")
+    add_line(f"Target Models/Backends: {model_summary}")
+    add_line(f"Created At: {system_case.created_at.isoformat()}")
+    if system_case.source_url:
+        add_line(f"Source URL: {system_case.source_url}")
     add_line(
         f"Executive Summary: Final verdict {final_output.final_verdict} with score {final_output.final_score}. "
         f"Required actions: {', '.join(final_output.required_actions) or 'None'}"
     )
     add_line(f"Top Risks: {', '.join(unique_risks[:3]) or 'None identified'}")
+    if system_case.derived_observations.detected_risk_surfaces:
+        add_line(
+            f"Detected Risk Surfaces: {', '.join(system_case.derived_observations.detected_risk_surfaces)}"
+        )
+    if system_case.derived_observations.open_questions:
+        add_line(f"Open Questions: {', '.join(system_case.derived_observations.open_questions)}")
 
     for judge in judge_outputs:
         add_line(f"{judge.judge_id.upper()} Summary", "Heading2")

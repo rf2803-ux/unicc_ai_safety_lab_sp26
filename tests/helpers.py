@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from ai_safety_lab.schemas import CaseFile, FinalJudgeOutput, JudgeOutput
+from ai_safety_lab.adapters import system_case_from_case_file
+from ai_safety_lab.schemas import CaseFile, FinalJudgeOutput, JudgeOutput, SystemCase
 
 
 def sample_case_file() -> CaseFile:
@@ -69,3 +70,7 @@ def sample_final_output() -> FinalJudgeOutput:
             "governance_mapping": ["EU:Robustness"],
         }
     )
+
+
+def sample_system_case() -> SystemCase:
+    return system_case_from_case_file(sample_case_file())
