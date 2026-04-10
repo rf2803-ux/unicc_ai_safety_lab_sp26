@@ -12,6 +12,7 @@ from .system_case import (
     ObservedInteraction,
     SecurityPosture,
     SourceMetadata,
+    SourceKind,
     SourceRef,
     SystemCase,
 )
@@ -34,6 +35,7 @@ __all__ = [
     "ObservedInteraction",
     "SecurityPosture",
     "SourceMetadata",
+    "SourceKind",
     "SourceRef",
     "SystemCase",
     "ToolLog",
