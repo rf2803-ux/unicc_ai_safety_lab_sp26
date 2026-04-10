@@ -4,25 +4,50 @@ Courtroom-style AI Safety Lab for the UNICC Spring 2026 capstone.
 
 ## Overview
 
-This project evaluates AI conversations before deployment using a courtroom-style council:
+This project evaluates AI systems for safety, risk, and trustworthiness using a multi-expert review workflow:
 
-- Judge 1, Judge 2, and Judge 3 review the same case with the same baseline rubric
-- The Ultimate Judge reads only the three judge outputs and produces the final verdict
-- Each run saves JSON artifacts and a PDF report under `runs/<timestamp>/`
+- Judge 1, Judge 2, and Judge 3 assess the same target from different expert lenses
+- The Ultimate Judge arbitrates across those three outputs and produces the final decision
+- Each run saves structured JSON artifacts and a PDF report under `runs/<timestamp>/`
 
-## MVP scope
+The app currently supports three input paths:
 
-- Upload or generate a `case_file.json`
-- Run three holistic judges with the same rubric
-- Run an Ultimate Judge on only the three judge outputs
-- Save run artifacts under `runs/<timestamp>/`
-- Generate a PDF report for each run
+- JSON case file upload
+- Public GitHub repository URL ingestion
+- Internal chat-based case generation
+
+## What The Evaluator Can Do
+
+From the Streamlit app, a first-time user can:
+
+1. Open the `Instructions` tab for onboarding
+2. Evaluate a JSON case file
+3. Evaluate a public GitHub repository by pasting its URL
+4. Generate a demo case inside the app
+5. Run the expert panel and download a PDF report
 
 ## Setup
 
+### Requirements
+
+- Python `3.11+`
+- `uv`
+
+Install `uv` if needed:
+
 ```bash
 brew install uv
+```
+
+Install project dependencies:
+
+```bash
 uv sync
+```
+
+Create a local `.env` file:
+
+```bash
 cp .env.example .env
 ```
 
@@ -46,32 +71,110 @@ Important:
 - Never paste real keys into GitHub, screenshots, slides, or shared docs
 - Each teammate should create their own local `.env`
 
-## Run the Streamlit app
+## Run The App
 
 ```bash
 uv run streamlit run src/ui/app.py
 ```
 
-## Run tests
+Then open the local Streamlit URL shown in the terminal.
+
+## Recommended Evaluator Flow
+
+The app opens with four tabs:
+
+1. `Instructions`
+2. `Upload JSON`
+3. `GitHub URL`
+4. `Internal Chat Generator`
+
+For repository-based evaluation, the simplest path is:
+
+1. Open `GitHub URL`
+2. Paste a public GitHub repository URL
+3. Click `Load Repository Preview`
+4. Review the intake summary and evidence preview
+5. Click `Run Safety Evaluation`
+
+For JSON-based evaluation:
+
+1. Open `Upload JSON`
+2. Upload a `case_file.json`
+3. Click `Run Safety Evaluation`
+
+For generated demo evaluation:
+
+1. Open `Internal Chat Generator`
+2. Select a scenario
+3. Click `Run Safety Evaluation`
+
+## GitHub Repository Ingestion
+
+When a public GitHub repository URL is provided, the app:
+
+1. fetches the repository locally
+2. inspects prioritized files such as `README.md`, `requirements.txt`, `.env.example`, and app entrypoints
+3. extracts structured evidence such as:
+   - framework/app type
+   - model/backend usage
+   - upload or file-processing surfaces
+   - auth/security signals
+   - dependency/setup signals
+   - reporting/output behavior
+4. converts those findings into a `SystemCase`
+5. sends that `SystemCase` through the same expert evaluation pipeline
+
+This repository ingestion is deterministic and evidence-driven. It does not depend on an LLM to decide which files to inspect.
+
+## Verdict Mapping
+
+This project uses the following verdict labels in the UI and JSON outputs:
+
+- `SAFE` = functionally equivalent to `APPROVE`
+- `NEEDS_REVIEW` = functionally equivalent to `REVIEW`
+- `UNSAFE` = functionally equivalent to `REJECT`
+
+We keep `SAFE / NEEDS_REVIEW / UNSAFE` as the internal courtroom-style decision labels, but they map directly to the evaluation rubric’s approval categories.
+
+## Run Artifacts
+
+Each evaluation run creates a timestamped folder in `runs/`.
+
+Typical artifacts include:
+
+- `system_case.json`
+- `run_metadata.json`
+- `judge1.json`
+- `judge2.json`
+- `judge3.json`
+- `final_judge.json`
+- `report.pdf`
+
+For enriched inputs such as GitHub repository analysis, the run may also include intake artifacts such as:
+
+- `intake_summary.json`
+- `intake_logs.json`
+- `repo_extraction.json`
+- `legacy_case_file.json` for compatibility flows
+
+## Testing
+
+Run the full test suite with:
 
 ```bash
-uv run pytest
+uv run --extra dev pytest
 ```
 
-Recommended rule:
-
-- Do not share `.env`
-- Do not share API keys
-- Do not give direct write access to `main` unless you want them to edit the repo
-
-## Key paths
+## Key Paths
 
 - Streamlit app: `src/ui/app.py`
 - Pipeline: `src/pipeline.py`
-- Provider clients: `src/clients/`
-- Judges: `src/judges/`
-- Ultimate judge: `src/final_judge/ultimate_judge.py`
-- PDF reporting: `src/reporting/make_report_pdf.py`
+- Core pipeline implementation: `src/ai_safety_lab/pipeline.py`
+- System schema: `src/ai_safety_lab/schemas/system_case.py`
+- GitHub ingestion: `src/ai_safety_lab/ingestion/`
+- Judges: `src/ai_safety_lab/judges/`
+- Ultimate judge: `src/ai_safety_lab/final_judge/ultimate_judge.py`
+- PDF reporting: `src/ai_safety_lab/reporting/make_report_pdf.py`
 - Example cases: `examples/cases/`
 
 ## Notes
@@ -79,3 +182,5 @@ Recommended rule:
 - `config/config.example.yaml` contains model/backend defaults for the MVP
 - `.env.example` is committed; `.env` stays local only
 - `runs/` is generated output and is mostly ignored by Git
+- Public GitHub repositories are supported in the current ingestion flow
+- Endpoint URL evaluation is not implemented yet
