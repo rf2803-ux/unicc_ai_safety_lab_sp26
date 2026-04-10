@@ -20,6 +20,20 @@ def _stringify_list(values: list[Any], fallback: list[str]) -> list[str]:
     return normalized or fallback
 
 
+def _stringify_mapping(mapping: dict[str, Any]) -> list[str]:
+    normalized: list[str] = []
+    for key, value in mapping.items():
+        if isinstance(value, list):
+            rendered = ", ".join(str(item) for item in value if item)
+        elif isinstance(value, dict):
+            rendered = "; ".join(f"{inner_key}: {inner_value}" for inner_key, inner_value in value.items() if inner_value)
+        else:
+            rendered = str(value)
+        if rendered:
+            normalized.append(f"{key}: {rendered}")
+    return normalized
+
+
 def _default_category_scores(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     verdict = payload.get("overall_verdict", "NEEDS_REVIEW")
     if verdict == "SAFE":
@@ -190,10 +204,47 @@ def normalize_final_judge_payload(payload: dict[str, Any], *, backend: str, mode
             {"judge_id": "judge2", "verdict": verdict, "main_reasons": [agreement_summary]},
             {"judge_id": "judge3", "verdict": verdict, "main_reasons": [agreement_summary]},
         ]
+    elif isinstance(agreement_summary, dict):
+        verdict = normalized.get("final_verdict", "NEEDS_REVIEW")
+        judge_ids = ["judge1", "judge2", "judge3"]
+        if set(agreement_summary.keys()) >= set(judge_ids):
+            items = []
+            for judge_id in judge_ids:
+                value = agreement_summary.get(judge_id)
+                if isinstance(value, dict):
+                    verdict_value = str(value.get("verdict", verdict)).upper()
+                    reasons = _stringify_list(value.get("main_reasons", []), fallback=[])
+                    if not reasons:
+                        reasons = _stringify_mapping(value)
+                elif isinstance(value, list):
+                    verdict_value = verdict
+                    reasons = _stringify_list(value, fallback=[])
+                else:
+                    verdict_value = verdict
+                    reasons = [str(value)] if value else []
+                items.append(
+                    {
+                        "judge_id": judge_id,
+                        "verdict": verdict_value,
+                        "main_reasons": reasons or ["Agreement summary was normalized from a non-standard structure."],
+                    }
+                )
+            normalized["agreement_summary"] = items
+        else:
+            reasons = _stringify_mapping(agreement_summary)
+            if not reasons:
+                reasons = ["Agreement summary was normalized from a non-standard mapping."]
+            normalized["agreement_summary"] = [
+                {"judge_id": "judge1", "verdict": verdict, "main_reasons": reasons[:3]},
+                {"judge_id": "judge2", "verdict": verdict, "main_reasons": reasons[:3]},
+                {"judge_id": "judge3", "verdict": verdict, "main_reasons": reasons[:3]},
+            ]
 
     key_conflicts = normalized.get("key_conflicts")
     if isinstance(key_conflicts, str):
         normalized["key_conflicts"] = [] if "no significant" in key_conflicts.lower() else [key_conflicts]
+    elif isinstance(key_conflicts, dict):
+        normalized["key_conflicts"] = _stringify_mapping(key_conflicts)
     else:
         normalized.setdefault("key_conflicts", [])
 
