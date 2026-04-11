@@ -423,10 +423,10 @@ def _render_sidebar(config) -> None:
             st.caption(
                 "This workflow uses the UNICC Review Framework, a multi-expert safety review approach "
                 "for evaluating AI systems across governance, security, transparency, and user-impact "
-                "concerns. It is designed as an internal review rubric and is informed by NIST AI RMF "
-                "trustworthiness concepts, ISO/IEC 42001 governance principles, and EU AI Act-style "
-                "risk considerations. It should be understood as an aligned review framework, not as a "
-                "formal certification or legal compliance determination."
+                "concerns. It is aligned to principles from NIST AI RMF and supports assessment against "
+                "selected governance, documentation, traceability, robustness, and oversight themes also "
+                "reflected in ISO/IEC 42001 and the EU AI Act. It should be understood as an internal "
+                "review framework and assessment aid, not as a formal certification or legal compliance determination."
             )
         st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
         with st.expander("Model Information", expanded=False):
@@ -562,9 +562,24 @@ def _render_reviewer_panel(view: dict[str, Any], *, final_panel: bool = False) -
         with st.expander("View Reviewer Detail", expanded=False):
             st.write(view["summary"])
             _render_bullet_section("Category Highlights", list(view["category_highlights"]), "No category highlights were available.")
+            _render_bullet_section(
+                "Framework Alignment",
+                [
+                    f"{item['label']}: NIST AI RMF ({', '.join(item['nist'])}); ISO/IEC 42001 ({', '.join(item['iso'])}); EU AI Act ({', '.join(item['eu'])})"
+                    for item in view.get("framework_alignment", [])
+                ],
+                "No framework alignment summary was available.",
+            )
             st.markdown("**Detailed Category Notes**")
             for item in view["category_details"]:
                 st.write(f"- **{item['label']}** (score {item['score']}): {item['rationale']}")
+                framework = item["framework_alignment"]
+                st.caption(
+                    "Framework alignment: "
+                    f"NIST AI RMF ({', '.join(framework['nist'])}) | "
+                    f"ISO/IEC 42001 ({', '.join(framework['iso'])}) | "
+                    f"EU AI Act ({', '.join(framework['eu'])})"
+                )
                 for snippet in item["evidence_snippets"]:
                     st.caption(snippet)
 
@@ -593,6 +608,21 @@ def _render_alignment_block(view: dict[str, Any]) -> None:
         with st.expander("View differences", expanded=False):
             for item in alignment["details"]:
                 st.write(f"- {item}")
+
+
+def _render_framework_alignment(view: dict[str, Any]) -> None:
+    st.markdown("### Framework Alignment")
+    with st.container(border=True):
+        st.caption(
+            "The UNICC Review Framework is aligned to principles from NIST AI RMF and supports assessment "
+            "against selected governance, transparency, traceability, robustness, and oversight themes "
+            "reflected in ISO/IEC 42001 and the EU AI Act."
+        )
+        for item in view.get("framework_alignment", []):
+            st.write(f"**{item['label']}**")
+            st.write(f"- NIST AI RMF: {', '.join(item['nist'])}")
+            st.write(f"- ISO/IEC 42001: {', '.join(item['iso'])}")
+            st.write(f"- EU AI Act: {', '.join(item['eu'])}")
 
 
 def _render_input_preview(bundle: dict[str, Any]) -> None:
@@ -693,6 +723,7 @@ def _render_results(run_result) -> None:
         for item in final_view["reasons"]:
             st.write(f"- {item}")
 
+    _render_framework_alignment(final_view)
     _render_alignment_block(final_view)
     st.markdown("### Expert Reviewer Breakdown")
     columns = st.columns(4)

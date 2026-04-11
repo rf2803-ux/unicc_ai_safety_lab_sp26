@@ -16,6 +16,49 @@ CATEGORY_LABELS = {
     "auditability": "Auditability",
 }
 
+FRAMEWORK_CROSSWALK = {
+    "privacy_data_leakage": {
+        "nist": ["Govern", "Measure", "Privacy-enhanced and accountable operation"],
+        "iso": ["Governance", "Risk treatment", "Documentation and data handling controls"],
+        "eu": ["Risk management", "Documentation", "Traceability and deployer information"],
+    },
+    "harmful_content_unsafe_instructions": {
+        "nist": ["Map", "Manage", "Harm prevention and trustworthy use"],
+        "iso": ["Operational controls", "Human oversight", "Risk treatment"],
+        "eu": ["Human oversight", "Safety-oriented controls", "Accuracy and robustness"],
+    },
+    "cyber_misuse": {
+        "nist": ["Measure", "Manage", "Secure and resilient operation"],
+        "iso": ["Security controls", "Operational safeguards", "Risk treatment"],
+        "eu": ["Cybersecurity", "Robustness", "Risk mitigation"],
+    },
+    "bias_discrimination_hate": {
+        "nist": ["Map", "Measure", "Fairness and harmful-bias management"],
+        "iso": ["Impact assessment", "Risk treatment", "Governance oversight"],
+        "eu": ["Dataset quality", "Discriminatory-outcome reduction", "Human oversight"],
+    },
+    "deception_impersonation_overclaiming": {
+        "nist": ["Govern", "Measure", "Explainability and validity"],
+        "iso": ["Transparency", "Documentation", "User-facing controls"],
+        "eu": ["Clear information to deployers", "Transparency", "Documentation"],
+    },
+    "prompt_injection_jailbreak_resistance": {
+        "nist": ["Measure", "Manage", "Secure and resilient operation"],
+        "iso": ["Operational controls", "Security safeguards", "Risk treatment"],
+        "eu": ["Cybersecurity", "Robustness", "Risk mitigation"],
+    },
+    "transparency_reliability": {
+        "nist": ["Govern", "Measure", "Explainability and reliability"],
+        "iso": ["Transparency", "Documentation", "Continual improvement"],
+        "eu": ["Documentation", "Clear deployer information", "Accuracy"],
+    },
+    "auditability": {
+        "nist": ["Govern", "Measure", "Accountability and traceability"],
+        "iso": ["Monitoring", "Documentation", "Governance and continual improvement"],
+        "eu": ["Logging for traceability", "Documentation", "Oversight support"],
+    },
+}
+
 REVIEWER_LABELS = {
     "judge1": "Expert Reviewer A",
     "judge2": "Expert Reviewer B",
@@ -127,6 +170,43 @@ def category_highlights(judge_output: JudgeOutput) -> list[str]:
     return highlights
 
 
+def framework_alignment_for_category(category: str) -> dict[str, object]:
+    label = CATEGORY_LABELS.get(category, category.replace("_", " ").title())
+    mapping = FRAMEWORK_CROSSWALK.get(category, {"nist": [], "iso": [], "eu": []})
+    return {
+        "category": category,
+        "label": label,
+        "nist": mapping["nist"],
+        "iso": mapping["iso"],
+        "eu": mapping["eu"],
+    }
+
+
+def framework_alignment_from_categories(categories: list[str]) -> list[dict[str, object]]:
+    seen: list[str] = []
+    alignments: list[dict[str, object]] = []
+    for category in categories:
+        if category in seen:
+            continue
+        seen.append(category)
+        alignments.append(framework_alignment_for_category(category))
+    return alignments
+
+
+def overall_framework_alignment(judge_outputs: list[JudgeOutput]) -> list[dict[str, object]]:
+    ordered = sorted(
+        (
+            (
+                sum(judge.category_scores[category].score for judge in judge_outputs) / len(judge_outputs),
+                category,
+            )
+            for category in CATEGORY_LABELS
+        ),
+        key=lambda item: item[0],
+    )
+    return framework_alignment_from_categories([category for _, category in ordered[:3]])
+
+
 def reviewer_panel_view(judge_output: JudgeOutput) -> dict[str, object]:
     return {
         "label": reviewer_label(judge_output.judge_id),
@@ -144,9 +224,13 @@ def reviewer_panel_view(judge_output: JudgeOutput) -> dict[str, object]:
                 "score": details.score,
                 "rationale": details.rationale,
                 "evidence_snippets": clean_bullets(details.evidence_snippets),
+                "framework_alignment": framework_alignment_for_category(category),
             }
             for category, details in sorted(judge_output.category_scores.items())
         ],
+        "framework_alignment": framework_alignment_from_categories(
+            [category for category, _ in sorted(judge_output.category_scores.items(), key=lambda item: item[1].score)[:3]]
+        ),
     }
 
 
@@ -176,4 +260,5 @@ def final_assessment_view(
         "required_actions": clean_bullets(final_output.required_actions),
         "main_reasons": main_reasons or clean_bullets(final_output.key_conflicts),
         "summary": final_output.final_rationale,
+        "framework_alignment": overall_framework_alignment(judge_outputs),
     }

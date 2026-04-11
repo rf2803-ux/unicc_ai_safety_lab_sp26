@@ -3,6 +3,7 @@ from __future__ import annotations
 from ai_safety_lab.reporting.presentation import (
     clean_bullets,
     final_assessment_view,
+    framework_alignment_for_category,
     reviewer_alignment_summary,
     reviewer_panel_view,
 )
@@ -51,3 +52,12 @@ def test_reviewer_alignment_summary_detects_strong_agreement() -> None:
     summary = reviewer_alignment_summary(judges, sample_final_output())
 
     assert summary["label"] == "Strong Agreement"
+
+
+def test_framework_alignment_for_category_returns_crosswalk() -> None:
+    alignment = framework_alignment_for_category("auditability")
+
+    assert alignment["label"] == "Auditability"
+    assert alignment["nist"]
+    assert alignment["iso"]
+    assert alignment["eu"]

@@ -203,6 +203,18 @@ This project uses the following verdict labels in the UI and JSON outputs:
 
 We keep `SAFE / NEEDS_REVIEW / UNSAFE` as the internal courtroom-style decision labels, but they map directly to the evaluation rubric’s approval categories.
 
+## Framework Alignment
+
+The app uses the **UNICC Review Framework**, an internal multi-expert safety review workflow that is:
+
+- aligned to principles from `NIST AI RMF`
+- supportive of assessment against selected governance, documentation, traceability, robustness, and oversight themes reflected in `ISO/IEC 42001`
+- supportive of assessment against selected risk-management, transparency, logging, human-oversight, and robustness themes reflected in the `EU AI Act`
+
+This should be understood as a framework-aligned assessment workflow, not as a certification or legal compliance determination.
+
+See the formal crosswalk in [`docs/framework_crosswalk.md`](docs/framework_crosswalk.md).
+
 ## Run Artifacts
 
 Each evaluation run creates a timestamped folder in `runs/`.

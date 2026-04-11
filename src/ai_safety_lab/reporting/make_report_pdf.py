@@ -10,7 +10,11 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from ai_safety_lab.reporting.presentation import CATEGORY_LABELS, final_assessment_view, reviewer_panel_view
+from ai_safety_lab.reporting.presentation import (
+    CATEGORY_LABELS,
+    final_assessment_view,
+    reviewer_panel_view,
+)
 from ai_safety_lab.schemas import FinalJudgeOutput, JudgeOutput, SystemCase
 from ai_safety_lab.settings import AppConfig
 
@@ -438,6 +442,41 @@ def _top_risks_block(story: list[object], styles: dict[str, ParagraphStyle], jud
         story.append(Spacer(1, 7))
 
 
+def _framework_alignment_block(
+    story: list[object], styles: dict[str, ParagraphStyle], final_view: dict[str, object]
+) -> None:
+    story.append(Spacer(1, 18))
+    story.append(_p("Framework alignment", styles["section"]))
+    story.append(
+        _p(
+            "The UNICC Review Framework is aligned to principles from NIST AI RMF and supports assessment against selected governance, transparency, traceability, robustness, and oversight themes reflected in ISO/IEC 42001 and the EU AI Act.",
+            styles["body_muted"],
+        )
+    )
+    story.append(Spacer(1, 8))
+    for item in final_view.get("framework_alignment", []):
+        story.append(
+            _table(
+                [
+                    [_p(f"<b>{item['label']}</b>", styles["body"])],
+                    [_p(f"NIST AI RMF: {', '.join(item['nist'])}", styles["body_small"])],
+                    [_p(f"ISO/IEC 42001: {', '.join(item['iso'])}", styles["body_small"])],
+                    [_p(f"EU AI Act: {', '.join(item['eu'])}", styles["body_small"])],
+                ],
+                [182 * mm],
+                [
+                    ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+                    ("BACKGROUND", (0, 0), (-1, 0), BG_SOFT),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ],
+            )
+        )
+        story.append(Spacer(1, 6))
+
+
 def _alignment_block(
     story: list[object],
     styles: dict[str, ParagraphStyle],
@@ -665,6 +704,7 @@ def generate_report_pdf(
     _metadata_grid(story, styles, system_case)
     _final_assessment_block(story, styles, final_view)
     _top_risks_block(story, styles, judge_outputs)
+    _framework_alignment_block(story, styles, final_view)
 
     story.append(PageBreak())
     _alignment_block(story, styles, reviewer_views, final_view)
