@@ -416,17 +416,20 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
 
 
 def _run_safety_evaluation(config, bundle: dict[str, Any] | None) -> None:
+    _run_safety_evaluation_for_key(config, bundle, "run_result")
+
+
+def _run_safety_evaluation_for_key(config, bundle: dict[str, Any] | None, result_key: str) -> None:
     if not bundle:
         st.error("Prepare an input source before running the safety evaluation.")
         return
     with st.spinner("Running judges and generating report..."):
         try:
-            st.session_state["run_result"] = evaluate_system_case(
+            st.session_state[result_key] = evaluate_system_case(
                 system_case=bundle["system_case"],
                 settings=config,
                 extra_artifacts=bundle["artifacts"],
             )
-            st.session_state["last_bundle"] = bundle
         except Exception as exc:  # pragma: no cover - Streamlit runtime path
             st.error(str(exc))
 
@@ -457,8 +460,7 @@ def _prepare_runtime_bundle(config: RuntimeProbeConfig) -> dict[str, Any]:
     )
 
 
-def _render_results() -> None:
-    run_result = st.session_state.get("run_result")
+def _render_results(run_result) -> None:
     if run_result is None:
         return
     st.success(f"Run completed: {run_result.run_dir}")
@@ -499,7 +501,10 @@ def main() -> None:
     config = load_app_config()
     st.set_page_config(page_title=config.app_name, layout="wide")
     _inject_styles()
-    st.session_state.setdefault("run_result", None)
+    st.session_state.setdefault("run_result_upload", None)
+    st.session_state.setdefault("run_result_github", None)
+    st.session_state.setdefault("run_result_runtime", None)
+    st.session_state.setdefault("run_result_generator", None)
     st.session_state.setdefault("github_bundle", None)
     st.session_state.setdefault("github_bundle_url", "")
     st.session_state.setdefault("runtime_bundle", None)
@@ -528,9 +533,10 @@ def main() -> None:
                 st.error(f"Invalid case file: {exc}")
 
         if st.button("Run Safety Evaluation", type="primary", key="run_upload"):
-            _run_safety_evaluation(config, upload_bundle)
+            _run_safety_evaluation_for_key(config, upload_bundle, "run_result_upload")
         if upload_bundle:
             _render_input_preview(upload_bundle)
+        _render_results(st.session_state.get("run_result_upload"))
 
     with github_tab:
         st.subheader("GitHub input")
@@ -557,9 +563,10 @@ def main() -> None:
             else None
         )
         if st.button("Run Safety Evaluation", type="primary", key="run_github"):
-            _run_safety_evaluation(config, github_bundle)
+            _run_safety_evaluation_for_key(config, github_bundle, "run_result_github")
         if github_bundle:
             _render_input_preview(github_bundle)
+        _render_results(st.session_state.get("run_result_github"))
 
     with runtime_tab:
         st.subheader("App / Endpoint URL")
@@ -653,9 +660,10 @@ def main() -> None:
             else None
         )
         if st.button("Run Safety Evaluation", type="primary", key="run_runtime"):
-            _run_safety_evaluation(config, runtime_bundle)
+            _run_safety_evaluation_for_key(config, runtime_bundle, "run_result_runtime")
         if runtime_bundle:
             _render_input_preview(runtime_bundle)
+        _render_results(st.session_state.get("run_result_runtime"))
 
     with generator_tab:
         st.subheader("Internal chat generator")
@@ -670,10 +678,9 @@ def main() -> None:
             mime="application/json",
         )
         if st.button("Run Safety Evaluation", type="primary", key="run_generator"):
-            _run_safety_evaluation(config, generator_bundle)
+            _run_safety_evaluation_for_key(config, generator_bundle, "run_result_generator")
         _render_input_preview(generator_bundle)
-
-    _render_results()
+        _render_results(st.session_state.get("run_result_generator"))
     st.markdown(
         '<div class="footer-note">UNICC internal prototype for structured AI system safety review.</div>',
         unsafe_allow_html=True,
