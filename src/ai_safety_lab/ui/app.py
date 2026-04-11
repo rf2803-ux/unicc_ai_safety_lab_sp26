@@ -60,108 +60,177 @@ def _inject_styles() -> None:
     st.markdown(
         """
         <style>
+        :root {
+            --app-bg-top: #f4f8fc;
+            --app-bg-bottom: #ffffff;
+            --header-bg: rgba(255, 255, 255, 0.92);
+            --header-border: rgba(216, 231, 247, 0.8);
+            --sidebar-bg: #eef4fb;
+            --surface-bg: #ffffff;
+            --surface-alt-bg: #f7fbff;
+            --surface-accent-bg: #edf5fd;
+            --surface-final-bg: #f4f9ff;
+            --border-soft: #d8e7f7;
+            --text-strong: #163a5d;
+            --text-body: #30506d;
+            --text-soft: #53708f;
+            --text-accent: #103d67;
+            --title-color: #173e67;
+            --tab-active-bg: #eaf3fc;
+            --shadow-color: rgba(14, 71, 123, 0.06);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --app-bg-top: #0f1722;
+                --app-bg-bottom: #111a26;
+                --header-bg: rgba(12, 18, 27, 0.88);
+                --header-border: rgba(60, 82, 108, 0.65);
+                --sidebar-bg: #111b28;
+                --surface-bg: #162231;
+                --surface-alt-bg: #182739;
+                --surface-accent-bg: #13283f;
+                --surface-final-bg: #142434;
+                --border-soft: #29435f;
+                --text-strong: #e8f0fa;
+                --text-body: #c1d0e2;
+                --text-soft: #9bb0c7;
+                --text-accent: #f1f6fd;
+                --title-color: #d8e8fb;
+                --tab-active-bg: #19304a;
+                --shadow-color: rgba(0, 0, 0, 0.25);
+            }
+        }
+        [data-testid="stHeader"] {
+            background: var(--header-bg);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--header-border);
+        }
         .stApp {
-            background: linear-gradient(180deg, #f4f8fc 0%, #ffffff 42%);
+            background: linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 42%);
+        }
+        .app-sticky-title {
+            position: fixed;
+            top: 0.72rem;
+            left: 4.4rem;
+            z-index: 1000;
+            color: var(--title-color);
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            pointer-events: none;
         }
         [data-testid="stSidebar"] {
-            background: #eef4fb;
+            background: var(--sidebar-bg);
         }
         .unicc-hero {
-            border: 1px solid #d8e7f7;
-            background: linear-gradient(135deg, #f7fbff 0%, #eef5fc 100%);
+            border: 1px solid var(--border-soft);
+            background: linear-gradient(135deg, var(--surface-alt-bg) 0%, var(--surface-accent-bg) 100%);
             border-radius: 18px;
             padding: 1.25rem 1.4rem;
             margin-bottom: 1rem;
-            box-shadow: 0 10px 25px rgba(14, 71, 123, 0.06);
+            box-shadow: 0 10px 25px var(--shadow-color);
+        }
+        .unicc-hero h1 {
+            color: var(--text-accent);
+        }
+        .unicc-hero p {
+            color: var(--text-body);
         }
         .unicc-subtitle {
-            color: #305e89;
+            color: var(--text-soft);
             font-size: 0.92rem;
             letter-spacing: 0.03em;
             text-transform: uppercase;
             margin-top: 0.35rem;
         }
         .panel-card {
-            border: 1px solid #d8e7f7;
-            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            background: var(--surface-bg);
             border-radius: 16px;
             padding: 1rem 1.1rem;
             margin-bottom: 1rem;
-            box-shadow: 0 10px 18px rgba(14, 71, 123, 0.05);
+            box-shadow: 0 10px 18px var(--shadow-color);
         }
         .panel-card h4 {
             margin: 0 0 0.65rem 0;
-            color: #163a5d;
+            color: var(--text-strong);
         }
         .panel-card p {
             margin: 0.3rem 0;
-            color: #30506d;
+            color: var(--text-body);
         }
         .decision-card {
-            border: 1px solid #bfd7ef;
-            background: linear-gradient(135deg, #edf5fd 0%, #f8fbff 100%);
+            border: 1px solid var(--border-soft);
+            background: linear-gradient(135deg, var(--surface-accent-bg) 0%, var(--surface-alt-bg) 100%);
             border-radius: 18px;
             padding: 1.25rem 1.4rem;
             margin: 1rem 0 1rem 0;
-            box-shadow: 0 12px 24px rgba(14, 71, 123, 0.08);
+            box-shadow: 0 12px 24px var(--shadow-color);
         }
         .decision-card h3 {
             margin: 0 0 0.45rem 0;
-            color: #103d67;
+            color: var(--text-accent);
         }
         .decision-card p {
             margin: 0.25rem 0;
-            color: #274f73;
+            color: var(--text-body);
         }
         .result-card {
-            border: 1px solid #d8e7f7;
-            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            background: var(--surface-bg);
             border-radius: 16px;
             padding: 1rem 1rem 0.65rem 1rem;
             min-height: 100%;
-            box-shadow: 0 8px 18px rgba(14, 71, 123, 0.05);
+            box-shadow: 0 8px 18px var(--shadow-color);
         }
         .result-card.final {
-            border: 1px solid #b8d5f1;
-            background: linear-gradient(180deg, #f4f9ff 0%, #ffffff 100%);
+            border: 1px solid var(--border-soft);
+            background: linear-gradient(180deg, var(--surface-final-bg) 0%, var(--surface-bg) 100%);
         }
         .result-card h4 {
             margin: 0 0 0.35rem 0;
-            color: #123e68;
+            color: var(--text-accent);
         }
         .result-card .meta {
-            color: #486784;
+            color: var(--text-soft);
             font-size: 0.95rem;
             margin-bottom: 0.65rem;
         }
         .section-card {
-            border: 1px solid #d8e7f7;
-            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            background: var(--surface-bg);
             border-radius: 14px;
             padding: 1rem 1.1rem;
             margin-bottom: 1rem;
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 0.75rem;
-            border-bottom: 1px solid #d8e7f7;
+            border-bottom: 1px solid var(--border-soft);
         }
         .stTabs [data-baseweb="tab"] {
             padding: 0.75rem 1rem;
             border-radius: 12px 12px 0 0;
-            color: #234d74;
+            color: var(--text-body);
         }
         .stTabs [aria-selected="true"] {
-            background: #eaf3fc;
-            color: #103d67;
+            background: var(--tab-active-bg);
+            color: var(--text-accent);
             font-weight: 600;
         }
         .footer-note {
             margin-top: 2rem;
-            color: #53708f;
+            color: var(--text-soft);
             font-size: 0.9rem;
         }
         </style>
         """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_sticky_header_title() -> None:
+    st.markdown(
+        '<div class="app-sticky-title">UNICC AI Safety Lab</div>',
         unsafe_allow_html=True,
     )
 
@@ -501,6 +570,7 @@ def main() -> None:
     config = load_app_config()
     st.set_page_config(page_title=config.app_name, layout="wide")
     _inject_styles()
+    _render_sticky_header_title()
     st.session_state.setdefault("run_result_upload", None)
     st.session_state.setdefault("run_result_github", None)
     st.session_state.setdefault("run_result_runtime", None)

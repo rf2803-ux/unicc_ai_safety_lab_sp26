@@ -179,8 +179,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             "recommendation_metric",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=17,
-            leading=20,
+            fontSize=15,
+            leading=18,
             textColor=RED,
         ),
         "badge_title": ParagraphStyle(
