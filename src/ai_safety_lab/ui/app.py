@@ -145,18 +145,76 @@ def _inject_styles() -> None:
         .panel-card {
             border: 1px solid var(--border-soft);
             background: var(--surface-bg);
-            border-radius: 16px;
-            padding: 1rem 1.1rem;
+            border-radius: 20px;
+            padding: 1.3rem 1.35rem;
             margin-bottom: 1rem;
             box-shadow: 0 10px 18px var(--shadow-color);
         }
         .panel-card h4 {
-            margin: 0 0 0.65rem 0;
+            margin: 0 0 0.15rem 0;
             color: var(--text-strong);
+            font-size: 1.05rem;
         }
         .panel-card p {
             margin: 0.3rem 0;
             color: var(--text-body);
+        }
+        .panel-subtitle {
+            margin: 0 0 1.1rem 0;
+            color: var(--text-soft);
+            font-size: 0.95rem;
+        }
+        .panel-divider {
+            border: none;
+            border-top: 1px solid var(--border-soft);
+            margin: 1rem 0 1.2rem 0;
+        }
+        .panel-metric {
+            margin-bottom: 1rem;
+        }
+        .panel-metric-label {
+            display: block;
+            color: var(--text-soft);
+            font-size: 0.95rem;
+            margin-bottom: 0.45rem;
+        }
+        .panel-pill {
+            display: inline-block;
+            padding: 0.36rem 0.85rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+        }
+        .panel-pill.green {
+            background: rgba(40, 167, 69, 0.12);
+            color: #14795a;
+            border-color: rgba(40, 167, 69, 0.22);
+        }
+        .panel-pill.blue {
+            background: rgba(25, 118, 210, 0.12);
+            color: #1c64b8;
+            border-color: rgba(25, 118, 210, 0.22);
+        }
+        .panel-pill.sand {
+            background: rgba(148, 129, 96, 0.12);
+            color: #6f6453;
+            border-color: rgba(148, 129, 96, 0.22);
+        }
+        html[data-ui-theme="dark"] .panel-pill.green {
+            background: rgba(70, 201, 170, 0.12);
+            color: #7fe2c8;
+            border-color: rgba(70, 201, 170, 0.25);
+        }
+        html[data-ui-theme="dark"] .panel-pill.blue {
+            background: rgba(100, 169, 255, 0.14);
+            color: #9ec7ff;
+            border-color: rgba(100, 169, 255, 0.28);
+        }
+        html[data-ui-theme="dark"] .panel-pill.sand {
+            background: rgba(203, 186, 145, 0.12);
+            color: #d8c59a;
+            border-color: rgba(203, 186, 145, 0.22);
         }
         .decision-card {
             border: 1px solid var(--border-soft);
@@ -342,14 +400,34 @@ def _render_sidebar(config) -> None:
         st.markdown(
             """
             <div class="panel-card">
-                <h4>Evaluation Panel</h4>
-                <p><strong>Expert Models:</strong> 3 active</p>
-                <p><strong>Consensus Engine:</strong> Enabled</p>
-                <p><strong>Risk Framework:</strong> Standard UNICC</p>
+                <h4>Evaluation panel</h4>
+                <div class="panel-subtitle">Safety testing suite</div>
+                <hr class="panel-divider" />
+                <div class="panel-metric">
+                    <span class="panel-metric-label">Expert models</span>
+                    <span class="panel-pill green">3 active</span>
+                </div>
+                <div class="panel-metric">
+                    <span class="panel-metric-label">Consensus engine</span>
+                    <span class="panel-pill blue">Enabled</span>
+                </div>
+                <div class="panel-metric">
+                    <span class="panel-metric-label">Risk framework</span>
+                    <span class="panel-pill sand">UNICC Review Framework</span>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        with st.expander("About the risk framework", expanded=False):
+            st.caption(
+                "This workflow uses the UNICC Review Framework, a multi-expert safety review approach "
+                "for evaluating AI systems across governance, security, transparency, and user-impact "
+                "concerns. It is designed as an internal review rubric and is informed by NIST AI RMF "
+                "trustworthiness concepts, ISO/IEC 42001 governance principles, and EU AI Act-style "
+                "risk considerations. It should be understood as an aligned review framework, not as a "
+                "formal certification or legal compliance determination."
+            )
         st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
         with st.expander("Model Information", expanded=False):
             for name, provider in config.providers.items():
