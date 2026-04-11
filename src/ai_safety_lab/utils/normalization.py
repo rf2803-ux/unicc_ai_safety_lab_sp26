@@ -61,6 +61,45 @@ def _default_category_scores(payload: dict[str, Any]) -> dict[str, dict[str, Any
     }
 
 
+def _normalize_score(value: Any, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return max(0, min(5, int(round(float(value)))))
+    if isinstance(value, str):
+        try:
+            return max(0, min(5, int(round(float(value)))))
+        except ValueError:
+            return default
+    return default
+
+
+def _normalize_category_scores(payload: dict[str, Any], default_score: int) -> dict[str, dict[str, Any]]:
+    category_scores = payload.get("category_scores")
+    if not isinstance(category_scores, dict):
+        return _default_category_scores(payload)
+
+    normalized: dict[str, dict[str, Any]] = {}
+    for key in CATEGORY_KEYS:
+        details = category_scores.get(key)
+        if not isinstance(details, dict):
+            normalized[key] = {
+                "score": default_score,
+                "rationale": "Category was missing from model output; fallback assessment applied.",
+                "evidence_snippets": ["Category details missing; manual review recommended."],
+            }
+            continue
+        normalized[key] = {
+            "score": _normalize_score(details.get("score", default_score), default_score),
+            "rationale": str(details.get("rationale") or "No rationale provided."),
+            "evidence_snippets": _stringify_list(
+                details.get("evidence_snippets", []),
+                fallback=["No evidence snippets provided."],
+            )[:3],
+        }
+    return normalized
+
+
 def recover_judge_payload_from_text(raw_text: str) -> dict[str, Any]:
     text = raw_text.strip()
 
@@ -115,34 +154,37 @@ def normalize_judge_payload(
     model: str,
 ) -> dict[str, Any]:
     if "category_scores" in payload:
-        normalized = dict(payload)
-        normalized.setdefault("judge_id", judge_id)
-        normalized.setdefault("judge_lens", judge_lens)
-        normalized.setdefault("backend", backend)
-        normalized.setdefault("model", model)
-        normalized.setdefault("overall_verdict", "NEEDS_REVIEW")
-        normalized.setdefault("overall_score", 3)
-        normalized.setdefault(
-            "top_3_risks",
-            [
-                "Incomplete structured output from model",
-                "Potential rubric drift",
-                "Manual review recommended for missing metadata",
-            ],
-        )
-        normalized.setdefault(
-            "recommended_mitigations",
-            [
-                "Tighten the judge prompt to force the exact schema",
-                "Review the category rationales manually",
-            ],
-        )
-        normalized.setdefault("confidence", "MED")
-        normalized.setdefault("governance_mapping", GOVERNANCE_DEFAULTS)
-        normalized.setdefault(
-            "summary",
-            "Holistic evaluation generated from the judge response with defaulted summary fields.",
-        )
+        verdict = str(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW").upper()
+        default_score = 1 if verdict == "UNSAFE" else 4 if verdict == "SAFE" else 3
+        normalized = {
+            "judge_id": judge_id,
+            "judge_lens": judge_lens,
+            "backend": backend,
+            "model": model,
+            "overall_verdict": verdict,
+            "overall_score": _normalize_score(payload.get("overall_score"), default_score),
+            "category_scores": _normalize_category_scores(payload, default_score),
+            "top_3_risks": _stringify_list(
+                payload.get("top_3_risks", []),
+                fallback=[
+                    "Incomplete structured output from model",
+                    "Potential rubric drift",
+                    "Manual review recommended for missing metadata",
+                ],
+            )[:3],
+            "recommended_mitigations": _stringify_list(
+                payload.get("recommended_mitigations", []),
+                fallback=[
+                    "Tighten the judge prompt to force the exact schema",
+                    "Review the category rationales manually",
+                ],
+            )[:3],
+            "confidence": str(payload.get("confidence", "MED")).upper(),
+            "governance_mapping": payload.get("governance_mapping", GOVERNANCE_DEFAULTS),
+            "summary": payload.get("summary")
+            or payload.get("rationale")
+            or "Holistic evaluation generated from the judge response with defaulted summary fields.",
+        }
         return normalized
 
     category_scores = {key: payload[key] for key in CATEGORY_KEYS if key in payload}
@@ -160,8 +202,8 @@ def normalize_judge_payload(
         "judge_lens": judge_lens,
         "backend": backend,
         "model": model,
-        "overall_verdict": payload.get("overall_verdict", "NEEDS_REVIEW"),
-        "overall_score": payload.get("overall_score", 3),
+        "overall_verdict": str(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW").upper(),
+        "overall_score": _normalize_score(payload.get("overall_score"), 3),
         "category_scores": category_scores,
         "top_3_risks": _stringify_list(
             payload.get("top_3_risks", []),
