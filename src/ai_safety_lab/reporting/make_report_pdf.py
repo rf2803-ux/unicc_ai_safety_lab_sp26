@@ -143,6 +143,46 @@ def _styles() -> dict[str, ParagraphStyle]:
             leading=27,
             textColor=BLUE,
         ),
+        "metric_compact": ParagraphStyle(
+            "metric_compact",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=20,
+            leading=23,
+            textColor=TEXT_DARK,
+        ),
+        "metric_compact_red": ParagraphStyle(
+            "metric_compact_red",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=20,
+            leading=23,
+            textColor=RED,
+        ),
+        "metric_compact_gold": ParagraphStyle(
+            "metric_compact_gold",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=20,
+            leading=23,
+            textColor=GOLD,
+        ),
+        "metric_compact_blue": ParagraphStyle(
+            "metric_compact_blue",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=20,
+            leading=23,
+            textColor=BLUE,
+        ),
+        "recommendation_metric": ParagraphStyle(
+            "recommendation_metric",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=17,
+            leading=20,
+            textColor=RED,
+        ),
         "badge_title": ParagraphStyle(
             "badge_title",
             parent=base["Normal"],
@@ -325,10 +365,10 @@ def _final_assessment_block(
     story.append(Spacer(1, 22))
     story.append(_p("Final assessment", styles["section"]))
     metrics = [
-        ("VERDICT", _p(str(final_view["verdict"]), styles["metric_red"]), BG_LIGHT_RED),
-        ("RISK LEVEL", _p(str(final_view["risk_level"]), styles["metric_gold"]), BG_LIGHT_RED),
-        ("CONFIDENCE", _p(str(final_view["confidence"]), styles["metric_blue"]), BG_LIGHT_RED),
-        ("RISK SCORE", _p(f'{final_view["risk_score"]} / 5', styles["metric"]), BG_LIGHT_RED),
+        ("VERDICT", _p(str(final_view["verdict"]), styles["metric_compact_red"]), BG_LIGHT_RED),
+        ("RISK LEVEL", _p(str(final_view["risk_level"]), styles["metric_compact_gold"]), BG_LIGHT_RED),
+        ("CONFIDENCE", _p(str(final_view["confidence"]), styles["metric_compact_blue"]), BG_LIGHT_RED),
+        ("RISK SCORE", _p(f'{final_view["risk_score"]} / 5', styles["metric_compact"]), BG_LIGHT_RED),
     ]
     story.append(
         _table(
@@ -353,7 +393,7 @@ def _final_assessment_block(
     story.append(Spacer(1, 8))
     story.append(
         _table(
-            [[_p("Recommendation", styles["body_muted"]), _p(str(final_view["recommendation"]), styles["metric_red"])]],
+            [[_p("Recommendation", styles["body_muted"]), _p(str(final_view["recommendation"]), styles["recommendation_metric"])]],
             [45.5 * mm, 136.5 * mm],
             [
                 ("BACKGROUND", (0, 0), (-1, -1), BG_LIGHT_RED),
