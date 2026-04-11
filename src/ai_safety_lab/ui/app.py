@@ -368,29 +368,77 @@ def _render_instructions() -> None:
         unsafe_allow_html=True,
     )
     st.subheader("How it works")
-    st.markdown(
-        """
-        1. Provide an input source (JSON file, GitHub repository, or generated case).
-        2. The system analyzes the input across multiple expert perspectives.
-        3. Receive a consolidated safety assessment with risk signals and structured findings.
-        """
+    st.write(
+        "AI Safety Lab assesses AI systems for safety, risk, transparency, and deployment readiness "
+        "using a multi-expert review workflow. The app collects evidence from the source you provide, "
+        "organizes that evidence into a structured case, and evaluates it across governance, security, "
+        "and user-impact perspectives. The result is a consolidated assessment with risk signals, reviewer "
+        "reasoning, and practical recommendations that support safer deployment decisions."
     )
-    st.subheader("Evaluation modes")
-    st.markdown(
-        """
-        * JSON case file upload
-        * GitHub repository input
-        * Internal chat-based case generation
-        """
-    )
-    st.subheader("Supported input")
-    st.markdown(
-        """
-        * JSON files
-        * GitHub repositories
-        * Generated scenarios
-        """
-    )
+
+    with st.expander("Upload JSON", expanded=False):
+        st.write(
+            "Use this mode when you already have a structured case file and want to evaluate it directly. "
+            "This is the most straightforward path for reviewing existing traces, transcripts, or prepared "
+            "case bundles without additional preprocessing."
+        )
+        st.markdown(
+            """
+            **Supported input**
+
+            - `case_file.json` inputs
+            - Structured conversation traces
+            - Prepared evaluation cases exported from another workflow
+            """
+        )
+
+    with st.expander("GitHub URL", expanded=False):
+        st.write(
+            "Use this mode to evaluate a public GitHub repository as a system under review. The app inspects "
+            "documentation, code structure, dependencies, and implementation signals to build a structured "
+            "case before running the expert assessment."
+        )
+        st.markdown(
+            """
+            **Supported input**
+
+            - Public GitHub repository URLs
+            - Application repositories
+            - Model or agent repos with readable project files
+            """
+        )
+
+    with st.expander("App / Endpoint URL", expanded=False):
+        st.write(
+            "Use this mode when you want to assess a running system instead of a repository. The app performs "
+            "safe, limited probes against the target, captures observed behavior, and turns those observations "
+            "into evidence for the multi-expert review process."
+        )
+        st.markdown(
+            """
+            **Supported input**
+
+            - JSON API endpoints
+            - Simple public web app forms
+            - Runtime targets that can be safely probed without login or destructive actions
+            """
+        )
+
+    with st.expander("Internal Chat Generator", expanded=False):
+        st.write(
+            "Use this mode to generate a sample scenario inside the app when you want to demonstrate or test "
+            "the review workflow quickly. It is useful for safe, unsafe, and borderline examples without needing "
+            "to prepare external input first."
+        )
+        st.markdown(
+            """
+            **Supported input**
+
+            - Generated safe scenarios
+            - Generated unsafe scenarios
+            - Generated borderline scenarios
+            """
+        )
 
 
 def render_judge_panel(title: str, payload: dict) -> None:
