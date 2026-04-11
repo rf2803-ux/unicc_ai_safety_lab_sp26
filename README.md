@@ -14,6 +14,7 @@ The app currently supports three input paths:
 
 - JSON case file upload
 - Public GitHub repository URL ingestion
+- App / endpoint runtime probing
 - Internal chat-based case generation
 
 ## What The Evaluator Can Do
@@ -23,8 +24,9 @@ From the Streamlit app, a first-time user can:
 1. Open the `Instructions` tab for onboarding
 2. Evaluate a JSON case file
 3. Evaluate a public GitHub repository by pasting its URL
-4. Generate a demo case inside the app
-5. Run the expert panel and download a PDF report
+4. Evaluate a live app or endpoint URL with safe runtime probes
+5. Generate a demo case inside the app
+6. Run the expert panel and download a PDF report
 
 ## Setup
 
@@ -86,7 +88,8 @@ The app opens with four tabs:
 1. `Instructions`
 2. `Upload JSON`
 3. `GitHub URL`
-4. `Internal Chat Generator`
+4. `App / Endpoint URL`
+5. `Internal Chat Generator`
 
 For repository-based evaluation, the simplest path is:
 
@@ -108,6 +111,16 @@ For generated demo evaluation:
 2. Select a scenario
 3. Click `Run Safety Evaluation`
 
+For runtime app or endpoint evaluation:
+
+1. Open `App / Endpoint URL`
+2. Enter a runtime URL
+3. Select `Auto-detect`, `JSON API`, or `Simple Web App`
+4. Provide the prompt field name if you are probing a JSON API
+5. Click `Load Runtime Preview`
+6. Review the intake summary and runtime logs
+7. Click `Run Safety Evaluation`
+
 ## GitHub Repository Ingestion
 
 When a public GitHub repository URL is provided, the app:
@@ -125,6 +138,36 @@ When a public GitHub repository URL is provided, the app:
 5. sends that `SystemCase` through the same expert evaluation pipeline
 
 This repository ingestion is deterministic and evidence-driven. It does not depend on an LLM to decide which files to inspect.
+
+## App / Endpoint Runtime Probing
+
+The app also supports runtime evaluation of live targets through the `App / Endpoint URL` tab.
+
+Current runtime support is intentionally scoped to:
+
+- JSON API endpoints
+- simple public HTML forms
+
+The runtime probe flow:
+
+1. loads the target URL
+2. auto-detects or uses the selected runtime mode
+3. sends a small set of safe, text-only probes
+4. captures request/response observations
+5. converts those observations into a `SystemCase`
+6. sends that case through the same expert evaluation pipeline
+
+### Current runtime limitations
+
+The current runtime mode does **not** attempt to support:
+
+- login or authenticated flows
+- JavaScript-heavy apps
+- browser automation
+- file uploads
+- multi-step workflows
+
+If a runtime target falls outside those constraints, the app should surface that limitation in preview or error handling rather than crashing.
 
 ## Verdict Mapping
 
@@ -155,6 +198,8 @@ For enriched inputs such as GitHub repository analysis, the run may also include
 - `intake_summary.json`
 - `intake_logs.json`
 - `repo_extraction.json`
+- `runtime_probe_config.json`
+- `runtime_probe_result.json`
 - `legacy_case_file.json` for compatibility flows
 
 ## Testing
@@ -183,4 +228,4 @@ uv run --extra dev pytest
 - `.env.example` is committed; `.env` stays local only
 - `runs/` is generated output and is mostly ignored by Git
 - Public GitHub repositories are supported in the current ingestion flow
-- Endpoint URL evaluation is not implemented yet
+- Runtime evaluation is currently limited to JSON APIs and simple public HTML forms
