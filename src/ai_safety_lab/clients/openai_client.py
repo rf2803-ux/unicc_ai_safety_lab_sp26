@@ -9,7 +9,9 @@ class OpenAIClient(BaseLLMClient):
     def __init__(self, model: str, api_key: str | None = None):
         super().__init__(model=model, api_key=api_key or os.getenv("OPENAI_API_KEY"))
         if not self.api_key:
-            raise MissingAPIKeyError("OPENAI_API_KEY is missing. Set it in your local .env file.")
+            raise MissingAPIKeyError(
+                "OPENAI_API_KEY is missing. Set it as an environment variable or in your local .env file."
+            )
         from openai import OpenAI
 
         self.client = OpenAI(api_key=self.api_key)

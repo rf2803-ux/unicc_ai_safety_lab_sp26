@@ -41,25 +41,31 @@ Install `uv` if needed:
 brew install uv
 ```
 
-Install project dependencies:
+Preferred install path:
 
 ```bash
-uv sync
+uv sync --extra dev
 ```
 
-Create a local `.env` file:
+Compatibility fallback for tools that expect `requirements.txt`:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create a local `.env` file or export the variables directly in your shell:
 
 ```bash
 cp .env.example .env
 ```
 
-Set these local secrets in `.env`:
+Set these required API keys:
 
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
 - `GEMINI_API_KEY`
 
-Example:
+You can set them in `.env`:
 
 ```env
 OPENAI_API_KEY=
@@ -67,11 +73,29 @@ ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
 ```
 
+Or export them in the shell before you run the app:
+
+```bash
+export OPENAI_API_KEY=your_key_here
+export ANTHROPIC_API_KEY=your_key_here
+export GEMINI_API_KEY=your_key_here
+```
+
 Important:
 
 - Never commit `.env`
 - Never paste real keys into GitHub, screenshots, slides, or shared docs
 - Each teammate should create their own local `.env`
+- The evaluator may supply their own keys through environment variables instead of a local `.env` file
+
+Recommended quick start on a clean machine:
+
+```bash
+uv sync --extra dev
+cp .env.example .env
+# add OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
+uv run streamlit run src/ui/app.py
+```
 
 ## Run The App
 
@@ -207,7 +231,7 @@ For enriched inputs such as GitHub repository analysis, the run may also include
 Run the full test suite with:
 
 ```bash
-uv run --extra dev pytest
+uv run pytest
 ```
 
 ## Key Paths
