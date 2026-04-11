@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import re
 
 from ai_safety_lab.adapters import system_case_from_case_file
 from ai_safety_lab.clients import ProviderResponseError
@@ -24,9 +25,22 @@ class RunResult:
     judge_output_paths: dict[str, Path]
     final_judge_path: Path
     report_pdf_path: Path
+    report_download_name: str
     run_metadata_path: Path
     judge_outputs: list[JudgeOutput]
     final_output: FinalJudgeOutput
+
+
+def _safe_report_stem(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9]+", "_", value.strip())
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    return normalized or "system"
+
+
+def _report_filename(system_case: SystemCase) -> str:
+    system_name = _safe_report_stem(system_case.title or system_case.case_id)
+    report_date = system_case.created_at.date().isoformat()
+    return f"reportEVALUATION_{system_name}_{report_date}.pdf"
 
 
 def evaluate_system_case(
@@ -75,7 +89,8 @@ def evaluate_system_case(
     final_judge_path = run_dir / "final_judge.json"
     write_json(final_judge_path, final_output.model_dump(mode="json"))
 
-    report_pdf_path = run_dir / "report.pdf"
+    report_download_name = _report_filename(system_case)
+    report_pdf_path = run_dir / report_download_name
     generate_report_pdf(
         output_path=report_pdf_path,
         system_case=system_case,
@@ -115,6 +130,7 @@ def evaluate_system_case(
         judge_output_paths=judge_output_paths,
         final_judge_path=final_judge_path,
         report_pdf_path=report_pdf_path,
+        report_download_name=report_download_name,
         run_metadata_path=run_metadata_path,
         judge_outputs=judge_outputs,
         final_output=final_output,

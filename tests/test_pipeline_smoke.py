@@ -49,6 +49,7 @@ def test_pipeline_creates_expected_artifacts(tmp_path: Path, monkeypatch) -> Non
     assert result.system_case_path.exists()
     assert result.final_judge_path.exists()
     assert result.report_pdf_path.exists()
+    assert result.report_download_name.endswith(".pdf")
     assert result.run_metadata_path.exists()
     assert all(path.exists() for path in result.judge_output_paths.values())
 
@@ -67,3 +68,4 @@ def test_pipeline_accepts_system_case_directly(tmp_path: Path, monkeypatch) -> N
     assert result.system_case_path.exists()
     assert result.final_judge_path.exists()
     assert result.report_pdf_path.exists()
+    assert result.report_download_name.endswith(".pdf")

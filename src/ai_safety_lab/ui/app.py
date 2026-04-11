@@ -490,7 +490,7 @@ def _render_results() -> None:
     st.download_button(
         "Download PDF report",
         data=Path(run_result.report_pdf_path).read_bytes(),
-        file_name="report.pdf",
+        file_name=run_result.report_download_name,
         mime="application/pdf",
     )
 
