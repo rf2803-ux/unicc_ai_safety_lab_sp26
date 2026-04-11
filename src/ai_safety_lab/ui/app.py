@@ -60,23 +60,23 @@ def _inject_styles() -> None:
     css = """
         <style>
         :root {
-            --app-bg-top: #f5f9fe;
-            --app-bg-bottom: #ffffff;
-            --header-bg: rgba(255, 255, 255, 0.94);
-            --header-border: #d7e3f0;
-            --sidebar-bg: #eef4fb;
-            --surface-bg: #ffffff;
-            --surface-alt-bg: #fbfdff;
-            --surface-accent-bg: #eef5fc;
-            --surface-final-bg: #f4f8fd;
-            --border-soft: #d7e3f0;
-            --text-strong: #183d68;
-            --text-body: #35597a;
-            --text-soft: #748ca5;
-            --text-accent: #173f6c;
-            --title-color: #173f6c;
-            --tab-active-bg: #e7f0fa;
-            --shadow-color: rgba(16, 60, 103, 0.08);
+            --app-bg-top: color-mix(in srgb, var(--background-color) 88%, #c9dcf1 12%);
+            --app-bg-bottom: var(--background-color);
+            --header-bg: color-mix(in srgb, var(--background-color) 94%, transparent);
+            --header-border: color-mix(in srgb, var(--text-color) 12%, transparent);
+            --sidebar-bg: color-mix(in srgb, var(--secondary-background-color) 82%, #dbe8f7 18%);
+            --surface-bg: color-mix(in srgb, var(--secondary-background-color) 76%, var(--background-color) 24%);
+            --surface-alt-bg: color-mix(in srgb, var(--secondary-background-color) 70%, #eef5fc 30%);
+            --surface-accent-bg: color-mix(in srgb, var(--secondary-background-color) 66%, #e7f0fa 34%);
+            --surface-final-bg: color-mix(in srgb, var(--secondary-background-color) 72%, #eff5fc 28%);
+            --border-soft: color-mix(in srgb, var(--text-color) 14%, #d7e3f0 86%);
+            --text-strong: color-mix(in srgb, var(--text-color) 92%, #173f6c 8%);
+            --text-body: color-mix(in srgb, var(--text-color) 80%, #35597a 20%);
+            --text-soft: color-mix(in srgb, var(--text-color) 62%, #748ca5 38%);
+            --text-accent: color-mix(in srgb, var(--text-color) 88%, #173f6c 12%);
+            --title-color: color-mix(in srgb, var(--text-color) 88%, #173f6c 12%);
+            --tab-active-bg: color-mix(in srgb, var(--primary-color) 14%, var(--secondary-background-color) 86%);
+            --shadow-color: color-mix(in srgb, #000000 12%, transparent);
         }
         [data-testid="stHeader"] {
             background: var(--header-bg);
