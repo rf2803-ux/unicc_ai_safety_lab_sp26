@@ -72,8 +72,7 @@ def _inject_styles(*, sidebar_hidden: bool) -> None:
             pointer-events: none;
         }
         """
-    st.markdown(
-        f"""
+    css = """
         <style>
         :root {
             --app-bg-top: color-mix(in srgb, var(--background-color) 82%, #c9dcf1 18%);
@@ -226,9 +225,12 @@ def _inject_styles(*, sidebar_hidden: bool) -> None:
             justify-content: flex-end;
             margin-bottom: 0.5rem;
         }
-        {sidebar_state_css}
+        __SIDEBAR_STATE_CSS__
         </style>
-        """,
+        """
+    css = css.replace("__SIDEBAR_STATE_CSS__", sidebar_state_css)
+    st.markdown(
+        css,
         unsafe_allow_html=True,
     )
 
