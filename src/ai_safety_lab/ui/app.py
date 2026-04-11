@@ -56,9 +56,24 @@ def make_demo_case(mode: str) -> CaseFile:
     )
 
 
-def _inject_styles() -> None:
-    st.markdown(
+def _inject_styles(*, sidebar_hidden: bool) -> None:
+    sidebar_state_css = ""
+    if sidebar_hidden:
+        sidebar_state_css = """
+        [data-testid="stSidebar"] {
+            min-width: 0 !important;
+            max-width: 0 !important;
+            width: 0 !important;
+            transform: translateX(-110%);
+            margin-left: -22rem;
+        }
+        [data-testid="stSidebarContent"] {
+            opacity: 0;
+            pointer-events: none;
+        }
         """
+    st.markdown(
+        f"""
         <style>
         :root {
             --app-bg-top: color-mix(in srgb, var(--background-color) 82%, #c9dcf1 18%);
@@ -203,6 +218,15 @@ def _inject_styles() -> None:
             color: var(--text-soft);
             font-size: 0.9rem;
         }
+        .sidebar-spacer {
+            min-height: 36vh;
+        }
+        .sidebar-toggle-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+        {sidebar_state_css}
         </style>
         """,
         unsafe_allow_html=True,
@@ -300,9 +324,19 @@ def _render_sidebar(config) -> None:
             """,
             unsafe_allow_html=True,
         )
-        with st.expander("Advanced Settings", expanded=False):
+        st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
+        with st.expander("Model Information", expanded=False):
             for name, provider in config.providers.items():
                 st.write(f"{name}: {provider.backend} / {provider.model}")
+
+
+def _render_sidebar_toggle() -> None:
+    st.markdown('<div class="sidebar-toggle-row">', unsafe_allow_html=True)
+    label = "Show side panel" if st.session_state.get("sidebar_hidden") else "Hide side panel"
+    if st.button(label, key="toggle_sidebar"):
+        st.session_state["sidebar_hidden"] = not st.session_state.get("sidebar_hidden", False)
+        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_instructions() -> None:
@@ -543,7 +577,8 @@ def _render_results(run_result) -> None:
 def main() -> None:
     config = load_app_config()
     st.set_page_config(page_title=config.app_name, layout="wide")
-    _inject_styles()
+    st.session_state.setdefault("sidebar_hidden", False)
+    _inject_styles(sidebar_hidden=st.session_state["sidebar_hidden"])
     st.session_state.setdefault("run_result_upload", None)
     st.session_state.setdefault("run_result_github", None)
     st.session_state.setdefault("run_result_runtime", None)
@@ -552,7 +587,9 @@ def main() -> None:
     st.session_state.setdefault("github_bundle_url", "")
     st.session_state.setdefault("runtime_bundle", None)
     st.session_state.setdefault("runtime_bundle_key", "")
-    _render_sidebar(config)
+    if not st.session_state["sidebar_hidden"]:
+        _render_sidebar(config)
+    _render_sidebar_toggle()
 
     instructions_tab, upload_tab, github_tab, runtime_tab, generator_tab = st.tabs(
         ["Instructions", "Upload JSON", "GitHub URL", "App / Endpoint URL", "Internal Chat Generator"]
