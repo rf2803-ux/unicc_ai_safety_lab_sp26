@@ -61,63 +61,43 @@ def _inject_styles() -> None:
         """
         <style>
         :root {
-            --app-bg-top: #f4f8fc;
-            --app-bg-bottom: #ffffff;
-            --header-bg: rgba(255, 255, 255, 0.92);
-            --header-border: rgba(216, 231, 247, 0.8);
-            --sidebar-bg: #eef4fb;
-            --surface-bg: #ffffff;
-            --surface-alt-bg: #f7fbff;
-            --surface-accent-bg: #edf5fd;
-            --surface-final-bg: #f4f9ff;
-            --border-soft: #d8e7f7;
-            --text-strong: #163a5d;
-            --text-body: #30506d;
-            --text-soft: #53708f;
-            --text-accent: #103d67;
-            --title-color: #173e67;
-            --tab-active-bg: #eaf3fc;
-            --shadow-color: rgba(14, 71, 123, 0.06);
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --app-bg-top: #0f1722;
-                --app-bg-bottom: #111a26;
-                --header-bg: rgba(12, 18, 27, 0.88);
-                --header-border: rgba(60, 82, 108, 0.65);
-                --sidebar-bg: #111b28;
-                --surface-bg: #162231;
-                --surface-alt-bg: #182739;
-                --surface-accent-bg: #13283f;
-                --surface-final-bg: #142434;
-                --border-soft: #29435f;
-                --text-strong: #e8f0fa;
-                --text-body: #c1d0e2;
-                --text-soft: #9bb0c7;
-                --text-accent: #f1f6fd;
-                --title-color: #d8e8fb;
-                --tab-active-bg: #19304a;
-                --shadow-color: rgba(0, 0, 0, 0.25);
-            }
+            --app-bg-top: color-mix(in srgb, var(--background-color) 82%, #c9dcf1 18%);
+            --app-bg-bottom: var(--background-color);
+            --header-bg: color-mix(in srgb, var(--background-color) 92%, transparent);
+            --header-border: color-mix(in srgb, var(--text-color) 14%, transparent);
+            --sidebar-bg: color-mix(in srgb, var(--secondary-background-color) 86%, var(--background-color) 14%);
+            --surface-bg: color-mix(in srgb, var(--secondary-background-color) 78%, var(--background-color) 22%);
+            --surface-alt-bg: color-mix(in srgb, var(--secondary-background-color) 68%, var(--background-color) 32%);
+            --surface-accent-bg: color-mix(in srgb, var(--secondary-background-color) 58%, var(--background-color) 42%);
+            --surface-final-bg: color-mix(in srgb, var(--secondary-background-color) 64%, var(--background-color) 36%);
+            --border-soft: color-mix(in srgb, var(--text-color) 16%, transparent);
+            --text-strong: var(--text-color);
+            --text-body: color-mix(in srgb, var(--text-color) 84%, transparent);
+            --text-soft: color-mix(in srgb, var(--text-color) 64%, transparent);
+            --text-accent: var(--text-color);
+            --title-color: var(--text-color);
+            --tab-active-bg: color-mix(in srgb, var(--primary-color) 18%, var(--secondary-background-color) 82%);
+            --shadow-color: color-mix(in srgb, #000000 12%, transparent);
         }
         [data-testid="stHeader"] {
             background: var(--header-bg);
             backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--header-border);
+            position: sticky;
         }
-        .stApp {
-            background: linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 42%);
-        }
-        .app-sticky-title {
-            position: fixed;
+        [data-testid="stHeader"]::before {
+            content: "UNICC AI Safety Lab";
+            position: absolute;
+            left: 4.2rem;
             top: 0.72rem;
-            left: 4.4rem;
-            z-index: 1000;
             color: var(--title-color);
             font-size: 1rem;
             font-weight: 700;
             letter-spacing: 0.01em;
-            pointer-events: none;
+            z-index: 1000;
+        }
+        .stApp {
+            background: linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-bottom) 42%);
         }
         [data-testid="stSidebar"] {
             background: var(--sidebar-bg);
@@ -211,6 +191,7 @@ def _inject_styles() -> None:
             padding: 0.75rem 1rem;
             border-radius: 12px 12px 0 0;
             color: var(--text-body);
+            background: transparent;
         }
         .stTabs [aria-selected="true"] {
             background: var(--tab-active-bg);
@@ -224,13 +205,6 @@ def _inject_styles() -> None:
         }
         </style>
         """,
-        unsafe_allow_html=True,
-    )
-
-
-def _render_sticky_header_title() -> None:
-    st.markdown(
-        '<div class="app-sticky-title">UNICC AI Safety Lab</div>',
         unsafe_allow_html=True,
     )
 
@@ -570,7 +544,6 @@ def main() -> None:
     config = load_app_config()
     st.set_page_config(page_title=config.app_name, layout="wide")
     _inject_styles()
-    _render_sticky_header_title()
     st.session_state.setdefault("run_result_upload", None)
     st.session_state.setdefault("run_result_github", None)
     st.session_state.setdefault("run_result_runtime", None)
