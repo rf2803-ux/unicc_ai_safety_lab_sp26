@@ -477,6 +477,44 @@ def _framework_alignment_block(
         story.append(Spacer(1, 6))
 
 
+def _control_assessment_block(
+    story: list[object], styles: dict[str, ParagraphStyle], final_view: dict[str, object]
+) -> None:
+    story.append(Spacer(1, 18))
+    story.append(_p("Control assessment", styles["section"]))
+    story.append(
+        _p(
+            "These controls are assessment-oriented signals derived from the current evidence bundle. They support structured assurance review and remediation planning, but do not constitute a certification or legal compliance determination.",
+            styles["body_muted"],
+        )
+    )
+    story.append(Spacer(1, 8))
+    for control in final_view.get("control_assessment", []):
+        evidence_text = "<br/>".join(f"• {item}" for item in control["evidence"])
+        story.append(
+            _table(
+                [
+                    [_p(f"<b>{control['label']}</b>", styles["body"])],
+                    [_p(control["description"], styles["body_small"])],
+                    [_p(f"Status: <b>{control['status']}</b> | Average category score: {control['average_score']} / 5", styles["body_small"])],
+                    [_p(f"Mapped categories: {', '.join(control['categories'])}", styles["body_small"])],
+                    [_p(control["status_summary"], styles["body_muted"])],
+                    [_p(evidence_text or "No supporting evidence was surfaced for this control.", styles["body_small"])],
+                ],
+                [182 * mm],
+                [
+                    ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+                    ("BACKGROUND", (0, 0), (-1, 0), BG_SOFT),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                    ("TOPPADDING", (0, 0), (-1, -1), 8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ],
+            )
+        )
+        story.append(Spacer(1, 6))
+
+
 def _alignment_block(
     story: list[object],
     styles: dict[str, ParagraphStyle],
@@ -705,6 +743,7 @@ def generate_report_pdf(
     _final_assessment_block(story, styles, final_view)
     _top_risks_block(story, styles, judge_outputs)
     _framework_alignment_block(story, styles, final_view)
+    _control_assessment_block(story, styles, final_view)
 
     story.append(PageBreak())
     _alignment_block(story, styles, reviewer_views, final_view)

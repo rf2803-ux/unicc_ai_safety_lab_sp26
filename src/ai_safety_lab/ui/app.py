@@ -625,6 +625,34 @@ def _render_framework_alignment(view: dict[str, Any]) -> None:
             st.write(f"- EU AI Act: {', '.join(item['eu'])}")
 
 
+def _render_control_assessment(view: dict[str, Any]) -> None:
+    st.markdown("### Control Assessment")
+    st.caption(
+        "These control summaries are derived from the evidence currently surfaced by the review workflow. "
+        "They support structured assurance and remediation planning, but they are not a certification or legal compliance determination."
+    )
+    for control in view.get("control_assessment", []):
+        with st.container(border=True):
+            st.write(f"**{control['label']}**")
+            st.write(control["description"])
+            st.write(
+                f"**Status:** {control['status']} | **Average category score:** {control['average_score']} / 5"
+            )
+            st.caption(control["status_summary"])
+            st.write(f"**Mapped categories:** {', '.join(control['categories'])}")
+            _render_bullet_section(
+                "Supporting Evidence",
+                list(control.get("evidence", [])),
+                "No supporting evidence was surfaced for this control.",
+            )
+            with st.expander("Framework Mapping", expanded=False):
+                for item in control.get("framework_alignment", []):
+                    st.write(f"- **{item['label']}**")
+                    st.write(f"  NIST AI RMF: {', '.join(item['nist'])}")
+                    st.write(f"  ISO/IEC 42001: {', '.join(item['iso'])}")
+                    st.write(f"  EU AI Act: {', '.join(item['eu'])}")
+
+
 def _render_input_preview(bundle: dict[str, Any]) -> None:
     system_case: SystemCase = bundle["system_case"]
     st.markdown("### Intake Summary")
@@ -724,6 +752,7 @@ def _render_results(run_result) -> None:
             st.write(f"- {item}")
 
     _render_framework_alignment(final_view)
+    _render_control_assessment(final_view)
     _render_alignment_block(final_view)
     st.markdown("### Expert Reviewer Breakdown")
     columns = st.columns(4)

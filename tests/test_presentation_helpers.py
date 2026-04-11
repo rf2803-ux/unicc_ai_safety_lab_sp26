@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ai_safety_lab.reporting.presentation import (
     clean_bullets,
+    control_assessment_view,
     final_assessment_view,
     framework_alignment_for_category,
     reviewer_alignment_summary,
@@ -61,3 +62,31 @@ def test_framework_alignment_for_category_returns_crosswalk() -> None:
     assert alignment["nist"]
     assert alignment["iso"]
     assert alignment["eu"]
+
+
+def test_control_assessment_view_returns_traceable_controls() -> None:
+    judges = [
+        sample_judge_output("judge1"),
+        sample_judge_output("judge2"),
+        sample_judge_output("judge3"),
+    ]
+
+    controls = control_assessment_view(judges)
+
+    assert controls
+    assert controls[0]["label"]
+    assert controls[0]["status"] in {"Needs attention", "Review needed", "Better supported"}
+    assert controls[0]["categories"]
+    assert controls[0]["framework_alignment"]
+
+
+def test_final_assessment_view_includes_control_assessment() -> None:
+    judges = [
+        sample_judge_output("judge1"),
+        sample_judge_output("judge2"),
+        sample_judge_output("judge3"),
+    ]
+
+    view = final_assessment_view(sample_final_output(), judges)
+
+    assert view["control_assessment"]

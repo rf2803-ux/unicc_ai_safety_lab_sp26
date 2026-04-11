@@ -215,6 +215,18 @@ This should be understood as a framework-aligned assessment workflow, not as a c
 
 See the formal crosswalk in [`docs/framework_crosswalk.md`](docs/framework_crosswalk.md).
 
+## Control Assessment Layer
+
+The current results and PDF outputs also include a lightweight **control assessment** layer. This layer:
+
+- groups category-level findings into operational controls such as logging, transparency, oversight, privacy safeguards, and misuse resilience
+- shows whether each control currently appears to need attention, needs manual review, or is better supported by the available evidence
+- ties each control back to the underlying categories and framework themes used in the review
+
+This layer is intended to support structured remediation planning and clearer assurance discussions. It should still be read as assessment support rather than certification or legal compliance evidence.
+
+See the control model in [`docs/control_library.md`](docs/control_library.md).
+
 ## Run Artifacts
 
 Each evaluation run creates a timestamped folder in `runs/`.
