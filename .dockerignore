@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.coverage
+dist
+build
+*.pyc
+*.egg-info
+runs
+!runs/.gitkeep

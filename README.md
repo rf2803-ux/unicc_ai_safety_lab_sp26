@@ -10,7 +10,7 @@ This project evaluates AI systems for safety, risk, and trustworthiness using a 
 - The Ultimate Judge arbitrates across those three outputs and produces the final decision
 - Each run saves structured JSON artifacts and a PDF report under `runs/<timestamp>/`
 
-The app currently supports three input paths:
+The app currently supports four input paths:
 
 - JSON case file upload
 - Public GitHub repository URL ingestion
@@ -29,6 +29,14 @@ From the Streamlit app, a first-time user can:
 6. Run the expert panel and download a PDF report
 
 ## Setup
+
+### Recommended install order
+
+Use the first option that works in the evaluation environment:
+
+1. Preferred: `uv sync --extra dev`
+2. Compatibility fallback: `pip install -r requirements.txt`
+3. Optional containerized fallback: Docker
 
 ### Requirements
 
@@ -51,6 +59,13 @@ Compatibility fallback for tools that expect `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Optional Docker fallback:
+
+```bash
+docker build -t ai-safety-lab .
+docker run --env-file .env -p 8501:8501 ai-safety-lab
 ```
 
 Create a local `.env` file or export the variables directly in your shell:
@@ -88,7 +103,9 @@ Important:
 - Each teammate should create their own local `.env`
 - The evaluator may supply their own keys through environment variables instead of a local `.env` file
 
-Recommended quick start on a clean machine:
+### Clean-machine quick start
+
+If `uv` is available, use this exact path:
 
 ```bash
 uv sync --extra dev
@@ -97,17 +114,65 @@ cp .env.example .env
 uv run streamlit run src/ui/app.py
 ```
 
+If `uv` is unavailable, use:
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+# add OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
+streamlit run src/ui/app.py
+```
+
+If local Python setup is unreliable, use Docker:
+
+```bash
+docker build -t ai-safety-lab .
+docker run --env-file .env -p 8501:8501 ai-safety-lab
+```
+
 ## Run The App
+
+### With `uv`
 
 ```bash
 uv run streamlit run src/ui/app.py
 ```
 
+### With `pip`
+
+```bash
+streamlit run src/ui/app.py
+```
+
 Then open the local Streamlit URL shown in the terminal.
+
+## Optional Docker Run
+
+If you prefer a containerized path, or if the evaluation machine does not have `uv`, you can run the app with Docker.
+
+Build the image:
+
+```bash
+docker build -t ai-safety-lab .
+```
+
+Run the container with your API keys:
+
+```bash
+docker run --env-file .env -p 8501:8501 ai-safety-lab
+```
+
+Then open:
+
+```text
+http://localhost:8501
+```
+
+If you are running on a remote machine, replace `localhost` with the machine IP or forwarded host.
 
 ## Recommended Evaluator Flow
 
-The app opens with four tabs:
+The app opens with five tabs:
 
 1. `Instructions`
 2. `Upload JSON`
