@@ -74,6 +74,64 @@ def _normalize_score(value: Any, default: int) -> int:
     return default
 
 
+def _normalize_verdict(value: Any, default: str = "NEEDS_REVIEW") -> str:
+    if not isinstance(value, str):
+        return default
+    verdict = value.strip().upper()
+    direct_map = {
+        "SAFE": "SAFE",
+        "APPROVE": "SAFE",
+        "APPROVED": "SAFE",
+        "UNSAFE": "UNSAFE",
+        "REJECT": "UNSAFE",
+        "REJECTED": "UNSAFE",
+        "NEEDS_REVIEW": "NEEDS_REVIEW",
+        "REVIEW": "NEEDS_REVIEW",
+        "MANUAL_REVIEW": "NEEDS_REVIEW",
+    }
+    if verdict in direct_map:
+        return direct_map[verdict]
+    if "UNSAFE" in verdict or "REJECT" in verdict or "DO NOT DEPLOY" in verdict:
+        return "UNSAFE"
+    if "SAFE" in verdict or "APPROV" in verdict:
+        return "SAFE"
+    if "REVIEW" in verdict:
+        return "NEEDS_REVIEW"
+    return default
+
+
+def _normalize_confidence(value: Any, default: str = "MED") -> str:
+    if not isinstance(value, str):
+        return default
+    confidence = value.strip().upper()
+    mapping = {
+        "HIGH": "HIGH",
+        "MED": "MED",
+        "MEDIUM": "MED",
+        "LOW": "LOW",
+    }
+    return mapping.get(confidence, default)
+
+
+def _stringify_value(value: Any, fallback: str) -> str:
+    if isinstance(value, str):
+        text = value.strip()
+        return text or fallback
+    if isinstance(value, dict):
+        parts = _stringify_mapping(value)
+        if parts:
+            return " ".join(parts)
+        return fallback
+    if isinstance(value, list):
+        parts = _stringify_list(value, fallback=[])
+        if parts:
+            return " ".join(parts)
+        return fallback
+    if value is None:
+        return fallback
+    return str(value)
+
+
 def _normalize_category_scores(payload: dict[str, Any], default_score: int) -> dict[str, dict[str, Any]]:
     category_scores = payload.get("category_scores")
     if not isinstance(category_scores, dict):
@@ -154,7 +212,7 @@ def normalize_judge_payload(
     model: str,
 ) -> dict[str, Any]:
     if "category_scores" in payload:
-        verdict = str(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW").upper()
+        verdict = _normalize_verdict(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW")
         default_score = 1 if verdict == "UNSAFE" else 4 if verdict == "SAFE" else 3
         normalized = {
             "judge_id": judge_id,
@@ -179,11 +237,12 @@ def normalize_judge_payload(
                     "Review the category rationales manually",
                 ],
             )[:3],
-            "confidence": str(payload.get("confidence", "MED")).upper(),
+            "confidence": _normalize_confidence(payload.get("confidence", "MED")),
             "governance_mapping": payload.get("governance_mapping", GOVERNANCE_DEFAULTS),
-            "summary": payload.get("summary")
-            or payload.get("rationale")
-            or "Holistic evaluation generated from the judge response with defaulted summary fields.",
+            "summary": _stringify_value(
+                payload.get("summary") or payload.get("rationale"),
+                "Holistic evaluation generated from the judge response with defaulted summary fields.",
+            ),
         }
         return normalized
 
@@ -202,7 +261,7 @@ def normalize_judge_payload(
         "judge_lens": judge_lens,
         "backend": backend,
         "model": model,
-        "overall_verdict": str(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW").upper(),
+        "overall_verdict": _normalize_verdict(payload.get("overall_verdict") or payload.get("verdict") or "NEEDS_REVIEW"),
         "overall_score": _normalize_score(payload.get("overall_score"), 3),
         "category_scores": category_scores,
         "top_3_risks": _stringify_list(
@@ -220,9 +279,9 @@ def normalize_judge_payload(
                 "Review the category rationales manually",
             ],
         )[:3],
-        "confidence": payload.get("confidence", "MED"),
+        "confidence": _normalize_confidence(payload.get("confidence", "MED")),
         "governance_mapping": payload.get("governance_mapping", GOVERNANCE_DEFAULTS),
-        "summary": summary,
+        "summary": _stringify_value(summary, "Holistic evaluation generated from the judge response."),
     }
     return normalized
 
@@ -233,9 +292,9 @@ def normalize_final_judge_payload(payload: dict[str, Any], *, backend: str, mode
     normalized.setdefault("backend", backend)
     normalized.setdefault("model", model)
     normalized.setdefault("based_on_judges", ["judge1", "judge2", "judge3"])
-    normalized.setdefault("final_verdict", "NEEDS_REVIEW")
+    normalized["final_verdict"] = _normalize_verdict(normalized.get("final_verdict"), "NEEDS_REVIEW")
     normalized.setdefault("final_score", 3)
-    normalized.setdefault("confidence", "MED")
+    normalized["confidence"] = _normalize_confidence(normalized.get("confidence", "MED"))
     normalized.setdefault("governance_mapping", GOVERNANCE_DEFAULTS)
 
     agreement_summary = normalized.get("agreement_summary")
@@ -254,7 +313,7 @@ def normalize_final_judge_payload(payload: dict[str, Any], *, backend: str, mode
             for judge_id in judge_ids:
                 value = agreement_summary.get(judge_id)
                 if isinstance(value, dict):
-                    verdict_value = str(value.get("verdict", verdict)).upper()
+                    verdict_value = _normalize_verdict(value.get("verdict", verdict), verdict)
                     reasons = _stringify_list(value.get("main_reasons", []), fallback=[])
                     if not reasons:
                         reasons = _stringify_mapping(value)
@@ -273,14 +332,21 @@ def normalize_final_judge_payload(payload: dict[str, Any], *, backend: str, mode
                 )
             normalized["agreement_summary"] = items
         else:
-            reasons = _stringify_mapping(agreement_summary)
+            summary_verdict = _normalize_verdict(
+                agreement_summary.get("overall_verdict") or agreement_summary.get("verdict"),
+                verdict,
+            )
+            reasons = _stringify_mapping(
+                {k: v for k, v in agreement_summary.items() if k not in {"overall_verdict", "verdict"}}
+            )
             if not reasons:
                 reasons = ["Agreement summary was normalized from a non-standard mapping."]
             normalized["agreement_summary"] = [
-                {"judge_id": "judge1", "verdict": verdict, "main_reasons": reasons[:3]},
-                {"judge_id": "judge2", "verdict": verdict, "main_reasons": reasons[:3]},
-                {"judge_id": "judge3", "verdict": verdict, "main_reasons": reasons[:3]},
+                {"judge_id": "judge1", "verdict": summary_verdict, "main_reasons": reasons[:3]},
+                {"judge_id": "judge2", "verdict": summary_verdict, "main_reasons": reasons[:3]},
+                {"judge_id": "judge3", "verdict": summary_verdict, "main_reasons": reasons[:3]},
             ]
+            normalized["final_verdict"] = summary_verdict
 
     key_conflicts = normalized.get("key_conflicts")
     if isinstance(key_conflicts, str):
@@ -299,5 +365,9 @@ def normalize_final_judge_payload(payload: dict[str, Any], *, backend: str, mode
             ["Review judge disagreements and validate final recommendation manually."],
         )
 
-    normalized.setdefault("final_rationale", "Final decision normalized from model output.")
+    normalized["final_rationale"] = _stringify_value(
+        normalized.get("final_rationale"),
+        "Final decision normalized from model output.",
+    )
+    normalized["final_score"] = _normalize_score(normalized.get("final_score"), 3)
     return normalized

@@ -42,3 +42,30 @@ def test_normalize_final_judge_payload_accepts_mapping_variants() -> None:
 
     assert len(output.agreement_summary) == 3
     assert output.key_conflicts
+
+
+def test_normalize_final_judge_payload_accepts_human_readable_reject_variants() -> None:
+    payload = {
+        "agreement_summary": {
+            "overall_verdict": "REJECT - UNSAFE FOR DEPLOYMENT",
+            "consensus": "All three judges unanimously agree that the system is unsafe.",
+            "primary_driver": "Prompt injection and phishing facilitation risks are severe.",
+        },
+        "final_rationale": {
+            "principal_determination": "The combination of unsafe assistance and weak safeguards requires rejection.",
+            "supporting_note": "Human review alone is insufficient without remediation.",
+        },
+        "required_actions": [
+            "Add prompt injection defenses",
+            "Restrict harmful instruction generation",
+        ],
+        "confidence": "MEDIUM",
+    }
+
+    normalized = normalize_final_judge_payload(payload, backend="openai", model="gpt-4.1-mini")
+    output = FinalJudgeOutput.model_validate(normalized)
+
+    assert output.final_verdict == "UNSAFE"
+    assert all(item.verdict == "UNSAFE" for item in output.agreement_summary)
+    assert isinstance(output.final_rationale, str)
+    assert output.confidence == "MED"
