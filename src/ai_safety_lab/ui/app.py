@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import streamlit as st
+import streamlit.components.v1 as components
 from pydantic import BaseModel, ValidationError
 
 from ai_safety_lab.adapters import system_case_from_case_file
@@ -60,23 +61,42 @@ def _inject_styles() -> None:
     css = """
         <style>
         :root {
-            --app-bg-top: color-mix(in srgb, var(--background-color) 92%, #dbe9f8 8%);
-            --app-bg-bottom: var(--background-color);
-            --header-bg: color-mix(in srgb, var(--background-color) 96%, white 4%);
-            --header-border: color-mix(in srgb, var(--text-color) 10%, #dae5f1 90%);
-            --sidebar-bg: color-mix(in srgb, var(--secondary-background-color) 84%, #e7f0fa 16%);
-            --surface-bg: color-mix(in srgb, var(--background-color) 94%, var(--secondary-background-color) 6%);
-            --surface-alt-bg: color-mix(in srgb, var(--background-color) 90%, #f3f8fe 10%);
-            --surface-accent-bg: color-mix(in srgb, var(--background-color) 86%, #edf4fc 14%);
-            --surface-final-bg: color-mix(in srgb, var(--background-color) 88%, #f0f6fd 12%);
-            --border-soft: color-mix(in srgb, var(--text-color) 10%, #d8e4f0 90%);
-            --text-strong: color-mix(in srgb, var(--text-color) 90%, #1f456f 10%);
-            --text-body: color-mix(in srgb, var(--text-color) 76%, #3c6284 24%);
-            --text-soft: color-mix(in srgb, var(--text-color) 56%, #8299b1 44%);
-            --text-accent: color-mix(in srgb, var(--text-color) 84%, #20486f 16%);
-            --title-color: color-mix(in srgb, var(--text-color) 86%, #20486f 14%);
-            --tab-active-bg: color-mix(in srgb, var(--primary-color) 12%, #e7f0fa 88%);
-            --shadow-color: color-mix(in srgb, #173f6c 8%, transparent);
+            --app-bg-top: #ffffff;
+            --app-bg-bottom: #ffffff;
+            --header-bg: rgba(255, 255, 255, 0.96);
+            --header-border: #d8d8d8;
+            --sidebar-bg: #e5e5e5;
+            --surface-bg: #ffffff;
+            --surface-alt-bg: #ffffff;
+            --surface-accent-bg: #ffffff;
+            --surface-final-bg: #ffffff;
+            --border-soft: #cfcfcf;
+            --text-strong: #1f2937;
+            --text-body: #374151;
+            --text-soft: #6b7280;
+            --text-accent: #20486f;
+            --title-color: #20486f;
+            --tab-active-bg: #e7f0fa;
+            --shadow-color: rgba(15, 23, 42, 0.06);
+        }
+        html[data-ui-theme="dark"] {
+            --app-bg-top: #14213D;
+            --app-bg-bottom: #14213D;
+            --header-bg: rgba(20, 33, 61, 0.96);
+            --header-border: #263252;
+            --sidebar-bg: #14192C;
+            --surface-bg: #1b2745;
+            --surface-alt-bg: #1b2745;
+            --surface-accent-bg: #1b2745;
+            --surface-final-bg: #1b2745;
+            --border-soft: #2c395a;
+            --text-strong: #f3f4f6;
+            --text-body: #d7deea;
+            --text-soft: #9ba9c2;
+            --text-accent: #f3f4f6;
+            --title-color: #f3f4f6;
+            --tab-active-bg: #223254;
+            --shadow-color: rgba(0, 0, 0, 0.22);
         }
         [data-testid="stHeader"] {
             background: var(--header-bg);
@@ -210,6 +230,32 @@ def _inject_styles() -> None:
     st.markdown(
         css,
         unsafe_allow_html=True,
+    )
+
+
+def _inject_theme_bridge() -> None:
+    components.html(
+        """
+        <script>
+        const setUiTheme = () => {
+          const root = window.parent.document.documentElement;
+          const body = window.parent.document.body;
+          const bg = getComputedStyle(body).backgroundColor || getComputedStyle(root).getPropertyValue('--background-color');
+          const match = String(bg).match(/rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/i);
+          if (!match) return;
+          const [r, g, b] = match.slice(1).map(Number);
+          const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+          root.setAttribute('data-ui-theme', luminance < 0.45 ? 'dark' : 'light');
+        };
+        setUiTheme();
+        const observer = new MutationObserver(setUiTheme);
+        observer.observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+        observer.observe(window.parent.document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+        setInterval(setUiTheme, 1000);
+        </script>
+        """,
+        height=0,
+        width=0,
     )
 
 
@@ -549,6 +595,7 @@ def main() -> None:
     config = load_app_config()
     st.set_page_config(page_title=config.app_name, layout="wide")
     _inject_styles()
+    _inject_theme_bridge()
     st.session_state.setdefault("run_result_upload", None)
     st.session_state.setdefault("run_result_github", None)
     st.session_state.setdefault("run_result_runtime", None)
