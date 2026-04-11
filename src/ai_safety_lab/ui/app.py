@@ -60,23 +60,23 @@ def _inject_styles() -> None:
     css = """
         <style>
         :root {
-            --app-bg-top: color-mix(in srgb, var(--background-color) 88%, #c9dcf1 12%);
+            --app-bg-top: color-mix(in srgb, var(--background-color) 92%, #dbe9f8 8%);
             --app-bg-bottom: var(--background-color);
-            --header-bg: color-mix(in srgb, var(--background-color) 94%, transparent);
-            --header-border: color-mix(in srgb, var(--text-color) 12%, transparent);
-            --sidebar-bg: color-mix(in srgb, var(--secondary-background-color) 82%, #dbe8f7 18%);
-            --surface-bg: color-mix(in srgb, var(--secondary-background-color) 76%, var(--background-color) 24%);
-            --surface-alt-bg: color-mix(in srgb, var(--secondary-background-color) 70%, #eef5fc 30%);
-            --surface-accent-bg: color-mix(in srgb, var(--secondary-background-color) 66%, #e7f0fa 34%);
-            --surface-final-bg: color-mix(in srgb, var(--secondary-background-color) 72%, #eff5fc 28%);
-            --border-soft: color-mix(in srgb, var(--text-color) 14%, #d7e3f0 86%);
-            --text-strong: color-mix(in srgb, var(--text-color) 92%, #173f6c 8%);
-            --text-body: color-mix(in srgb, var(--text-color) 80%, #35597a 20%);
-            --text-soft: color-mix(in srgb, var(--text-color) 62%, #748ca5 38%);
-            --text-accent: color-mix(in srgb, var(--text-color) 88%, #173f6c 12%);
-            --title-color: color-mix(in srgb, var(--text-color) 88%, #173f6c 12%);
-            --tab-active-bg: color-mix(in srgb, var(--primary-color) 14%, var(--secondary-background-color) 86%);
-            --shadow-color: color-mix(in srgb, #000000 12%, transparent);
+            --header-bg: color-mix(in srgb, var(--background-color) 96%, white 4%);
+            --header-border: color-mix(in srgb, var(--text-color) 10%, #dae5f1 90%);
+            --sidebar-bg: color-mix(in srgb, var(--secondary-background-color) 84%, #e7f0fa 16%);
+            --surface-bg: color-mix(in srgb, var(--background-color) 94%, var(--secondary-background-color) 6%);
+            --surface-alt-bg: color-mix(in srgb, var(--background-color) 90%, #f3f8fe 10%);
+            --surface-accent-bg: color-mix(in srgb, var(--background-color) 86%, #edf4fc 14%);
+            --surface-final-bg: color-mix(in srgb, var(--background-color) 88%, #f0f6fd 12%);
+            --border-soft: color-mix(in srgb, var(--text-color) 10%, #d8e4f0 90%);
+            --text-strong: color-mix(in srgb, var(--text-color) 90%, #1f456f 10%);
+            --text-body: color-mix(in srgb, var(--text-color) 76%, #3c6284 24%);
+            --text-soft: color-mix(in srgb, var(--text-color) 56%, #8299b1 44%);
+            --text-accent: color-mix(in srgb, var(--text-color) 84%, #20486f 16%);
+            --title-color: color-mix(in srgb, var(--text-color) 86%, #20486f 14%);
+            --tab-active-bg: color-mix(in srgb, var(--primary-color) 12%, #e7f0fa 88%);
+            --shadow-color: color-mix(in srgb, #173f6c 8%, transparent);
         }
         [data-testid="stHeader"] {
             background: var(--header-bg);
