@@ -11,9 +11,13 @@ from pydantic import BaseModel, ValidationError
 from ai_safety_lab.adapters import system_case_from_case_file
 from ai_safety_lab.ingestion import (
     GitHubRepositoryError,
+    RuntimeProbeConfig,
+    RuntimeProbeError,
     extract_repository_signals,
     fetch_public_github_repository,
+    run_runtime_probe,
     system_case_from_repo_extraction,
+    system_case_from_runtime_probe,
 )
 from ai_safety_lab.pipeline import evaluate_system_case
 from ai_safety_lab.reporting import final_assessment_view, reviewer_panel_view
@@ -439,6 +443,20 @@ def _prepare_github_bundle(repo_url: str) -> dict[str, Any]:
     )
 
 
+def _prepare_runtime_bundle(config: RuntimeProbeConfig) -> dict[str, Any]:
+    probe_result = run_runtime_probe(config)
+    system_case = system_case_from_runtime_probe(probe_result)
+    return _build_bundle(
+        system_case=system_case,
+        source_name=f"Runtime target: {config.url}",
+        intake_logs=[entry.model_dump(mode="json") for entry in probe_result.intake_logs],
+        extra_artifacts={
+            "runtime_probe_config": config.model_dump(mode="json"),
+            "runtime_probe_result": probe_result.model_dump(mode="json"),
+        },
+    )
+
+
 def _render_results() -> None:
     run_result = st.session_state.get("run_result")
     if run_result is None:
@@ -484,10 +502,12 @@ def main() -> None:
     st.session_state.setdefault("run_result", None)
     st.session_state.setdefault("github_bundle", None)
     st.session_state.setdefault("github_bundle_url", "")
+    st.session_state.setdefault("runtime_bundle", None)
+    st.session_state.setdefault("runtime_bundle_key", "")
     _render_sidebar(config)
 
-    instructions_tab, upload_tab, github_tab, generator_tab = st.tabs(
-        ["Instructions", "Upload JSON", "GitHub URL", "Internal Chat Generator"]
+    instructions_tab, upload_tab, github_tab, runtime_tab, generator_tab = st.tabs(
+        ["Instructions", "Upload JSON", "GitHub URL", "App / Endpoint URL", "Internal Chat Generator"]
     )
 
     with instructions_tab:
@@ -540,6 +560,102 @@ def main() -> None:
             _run_safety_evaluation(config, github_bundle)
         if github_bundle:
             _render_input_preview(github_bundle)
+
+    with runtime_tab:
+        st.subheader("App / Endpoint URL")
+        runtime_url = st.text_input("Enter app or endpoint URL", key="runtime_url")
+        runtime_mode = st.selectbox(
+            "Runtime mode",
+            ["Auto-detect", "JSON API", "Simple Web App"],
+            key="runtime_mode",
+        )
+        runtime_method = st.selectbox("HTTP method", ["POST", "GET"], key="runtime_method")
+        prompt_field = st.text_input(
+            "Prompt field name",
+            key="runtime_prompt_field",
+            help="For JSON APIs, this is usually something like input, prompt, text, or message.",
+        )
+        static_payload_text = st.text_area(
+            "Optional static JSON fields",
+            value="{}",
+            key="runtime_static_payload",
+            help='Example: {"model": "default", "temperature": 0}',
+        )
+        headers_text = st.text_area(
+            "Optional headers (JSON)",
+            value="{}",
+            key="runtime_headers",
+            help='Example: {"Authorization": "Bearer ..."}',
+        )
+        form_field = st.text_input(
+            "Optional form field name",
+            key="runtime_form_field",
+            help="Useful for simple HTML forms when the text field cannot be detected automatically.",
+        )
+        notes = st.text_area("Optional notes", key="runtime_notes")
+        st.caption(
+            "This runtime mode uses safe, limited text probes. Complex apps with login, file uploads, or heavy JavaScript may require manual review."
+        )
+
+        runtime_bundle: dict[str, Any] | None = None
+        runtime_key = "|".join(
+            [
+                runtime_url.strip(),
+                runtime_mode,
+                runtime_method,
+                prompt_field.strip(),
+                form_field.strip(),
+                static_payload_text.strip(),
+                headers_text.strip(),
+                notes.strip(),
+            ]
+        )
+
+        if st.button("Load Runtime Preview", key="preview_runtime"):
+            if not runtime_url.strip():
+                st.error("Enter an app or endpoint URL first.")
+            else:
+                try:
+                    static_payload = json.loads(static_payload_text or "{}")
+                    headers = json.loads(headers_text or "{}")
+                    if not isinstance(static_payload, dict) or not isinstance(headers, dict):
+                        raise ValueError("Static payload and headers must be JSON objects.")
+                    mode_map = {
+                        "Auto-detect": "auto",
+                        "JSON API": "json_api",
+                        "Simple Web App": "simple_web_app",
+                    }
+                    probe_config = RuntimeProbeConfig(
+                        url=runtime_url.strip(),
+                        mode=mode_map[runtime_mode],
+                        method=runtime_method,
+                        prompt_field=prompt_field.strip() or None,
+                        static_payload=static_payload,
+                        headers=headers,
+                        notes=notes.strip() or None,
+                        form_field=form_field.strip() or None,
+                    )
+                    with st.spinner("Probing runtime target and preparing safety preview..."):
+                        bundle = _prepare_runtime_bundle(probe_config)
+                        st.session_state["runtime_bundle"] = bundle
+                        st.session_state["runtime_bundle_key"] = runtime_key
+                        st.success("Runtime preview is ready.")
+                except json.JSONDecodeError:
+                    st.error("Optional static JSON fields and headers must be valid JSON objects.")
+                except (RuntimeProbeError, ValueError) as exc:
+                    st.error(str(exc))
+                except Exception as exc:  # pragma: no cover - Streamlit runtime path
+                    st.error(f"Unable to prepare runtime preview: {exc}")
+
+        runtime_bundle = (
+            st.session_state["runtime_bundle"]
+            if st.session_state.get("runtime_bundle_key") == runtime_key
+            else None
+        )
+        if st.button("Run Safety Evaluation", type="primary", key="run_runtime"):
+            _run_safety_evaluation(config, runtime_bundle)
+        if runtime_bundle:
+            _render_input_preview(runtime_bundle)
 
     with generator_tab:
         st.subheader("Internal chat generator")
