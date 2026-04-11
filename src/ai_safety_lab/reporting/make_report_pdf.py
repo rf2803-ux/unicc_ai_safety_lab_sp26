@@ -4,7 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -29,9 +29,11 @@ RED = colors.HexColor("#E94A4A")
 GOLD = colors.HexColor("#C88012")
 BLUE = colors.HexColor("#1E67B2")
 CARD_WHITE = colors.white
+TEAL = colors.HexColor("#0F6E56")
+PAGE_BG = colors.HexColor("#F7F6F3")
 
 VERDICT_COLORS = {
-    "Safe": colors.HexColor("#248A55"),
+    "Safe": TEAL,
     "Needs Review": GOLD,
     "Unsafe": RED,
 }
@@ -47,9 +49,31 @@ RISK_ROW_COLORS = {
     "Deception": RED,
 }
 
+CONTROL_STATUS_COLORS = {
+    "Needs attention": GOLD,
+    "Review needed": BLUE,
+    "Better supported": TEAL,
+}
+
 
 def _html_color(color: colors.Color) -> str:
     return f"#{int(color.red * 255):02X}{int(color.green * 255):02X}{int(color.blue * 255):02X}"
+
+
+def _page_chrome(canvas, doc) -> None:
+    canvas.saveState()
+    page_width, page_height = A4
+    margin = 10 * mm
+    canvas.setStrokeColor(BORDER)
+    canvas.setLineWidth(0.5)
+    canvas.roundRect(margin, margin, page_width - (2 * margin), page_height - (2 * margin), 6, stroke=1, fill=0)
+    canvas.setLineWidth(0.4)
+    canvas.setStrokeColor(BORDER)
+    canvas.line(margin + 4, margin + 6 * mm, page_width - margin - 4, margin + 6 * mm)
+    canvas.setFont("Helvetica", 6.5)
+    canvas.setFillColor(TEXT_MUTED)
+    canvas.drawCentredString(page_width / 2, margin + 2.5 * mm, f"AI Safety Lab · Evaluation Report · Page {doc.page}")
+    canvas.restoreState()
 
 
 def _styles() -> dict[str, ParagraphStyle]:
@@ -429,6 +453,8 @@ def _top_risks_block(story: list[object], styles: dict[str, ParagraphStyle], jud
                 [
                     ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
                     ("BACKGROUND", (0, 0), (0, 0), row_color),
+                    ("BACKGROUND", (1, 0), (1, 0), BG_SOFT),
+                    ("LINEAFTER", (1, 0), (1, 0), 0.5, BORDER),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (1, 0), (1, 0), 10),
                     ("RIGHTPADDING", (1, 0), (1, 0), 8),
@@ -436,6 +462,7 @@ def _top_risks_block(story: list[object], styles: dict[str, ParagraphStyle], jud
                     ("RIGHTPADDING", (2, 0), (2, 0), 10),
                     ("TOPPADDING", (0, 0), (-1, -1), 12),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+                    ("ROUNDEDCORNERS", [4]),
                 ],
             )
         )
@@ -459,20 +486,72 @@ def _framework_alignment_block(
             _table(
                 [
                     [_p(f"<b>{item['label']}</b>", styles["body"])],
-                    [_p(f"NIST AI RMF: {', '.join(item['nist'])}", styles["body_small"])],
-                    [_p(f"ISO/IEC 42001: {', '.join(item['iso'])}", styles["body_small"])],
-                    [_p(f"EU AI Act: {', '.join(item['eu'])}", styles["body_small"])],
+                    [
+                        _p("NIST AI RMF", styles["small_label"]),
+                        _p("ISO/IEC 42001", styles["small_label"]),
+                        _p("EU AI Act", styles["small_label"]),
+                    ],
+                    [
+                        _p(", ".join(item["nist"]), styles["body_small"]),
+                        _p(", ".join(item["iso"]), styles["body_small"]),
+                        _p(", ".join(item["eu"]), styles["body_small"]),
+                    ],
                 ],
                 [182 * mm],
                 [
                     ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
                     ("BACKGROUND", (0, 0), (-1, 0), BG_SOFT),
+                    ("INNERGRID", (0, 1), (-1, -1), 0.5, BORDER),
                     ("LEFTPADDING", (0, 0), (-1, -1), 10),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                     ("TOPPADDING", (0, 0), (-1, -1), 8),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
                 ],
             )
+        )
+        grid = _table(
+            [
+                [
+                    _p(", ".join(item["nist"]), styles["body_small"]),
+                    _p(", ".join(item["iso"]), styles["body_small"]),
+                    _p(", ".join(item["eu"]), styles["body_small"]),
+                ]
+            ],
+            [60.6 * mm, 60.6 * mm, 60.8 * mm],
+            [
+                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ],
+        )
+        story[-1] = _table(
+            [
+                [_p(f"<b>{item['label']}</b>", styles["body"])],
+                [
+                    _p("NIST AI RMF", styles["small_label"]),
+                    _p("ISO/IEC 42001", styles["small_label"]),
+                    _p("EU AI Act", styles["small_label"]),
+                ],
+                [
+                    _p(", ".join(item["nist"]), styles["body_small"]),
+                    _p(", ".join(item["iso"]), styles["body_small"]),
+                    _p(", ".join(item["eu"]), styles["body_small"]),
+                ],
+            ],
+            [60.6 * mm, 60.6 * mm, 60.8 * mm],
+            [
+                ("SPAN", (0, 0), (-1, 0)),
+                ("BACKGROUND", (0, 0), (-1, 0), BG_SOFT),
+                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+                ("INNERGRID", (0, 1), (-1, -1), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ],
         )
         story.append(Spacer(1, 6))
 
@@ -491,24 +570,36 @@ def _control_assessment_block(
     story.append(Spacer(1, 8))
     for control in final_view.get("control_assessment", []):
         evidence_text = "<br/>".join(f"• {item}" for item in control["evidence"])
+        status_color = CONTROL_STATUS_COLORS.get(str(control["status"]), GOLD)
+        status_bg = BG_LIGHT_GOLD if status_color == GOLD else colors.HexColor("#EAF4FD") if status_color == BLUE else colors.HexColor("#EAF7EF")
         story.append(
             _table(
                 [
-                    [_p(f"<b>{control['label']}</b>", styles["body"])],
+                    [
+                        _p(f"<b>{control['label']}</b>", styles["body"]),
+                        _p(f"<font color='{_html_color(status_color)}'><b>{control['status']}</b></font>", styles["body_small"]),
+                    ],
                     [_p(control["description"], styles["body_small"])],
-                    [_p(f"Status: <b>{control['status']}</b> | Average category score: {control['average_score']} / 5", styles["body_small"])],
                     [_p(f"Mapped categories: {', '.join(control['categories'])}", styles["body_small"])],
+                    [_p(f"Average category score: {control['average_score']} / 5", styles["body_small"])],
                     [_p(control["status_summary"], styles["body_muted"])],
                     [_p(evidence_text or "No supporting evidence was surfaced for this control.", styles["body_small"])],
                 ],
-                [182 * mm],
+                [126 * mm, 56 * mm],
                 [
                     ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                    ("BACKGROUND", (0, 0), (-1, 0), BG_SOFT),
+                    ("SPAN", (0, 1), (-1, 1)),
+                    ("SPAN", (0, 2), (-1, 2)),
+                    ("SPAN", (0, 3), (-1, 3)),
+                    ("SPAN", (0, 4), (-1, 4)),
+                    ("BACKGROUND", (0, 0), (-1, 0), status_bg),
+                    ("LINEBEFORE", (0, 0), (0, -1), 3, status_color),
                     ("LEFTPADDING", (0, 0), (-1, -1), 10),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                     ("TOPPADDING", (0, 0), (-1, -1), 8),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROUNDEDCORNERS", [4]),
                 ],
             )
         )
@@ -588,82 +679,84 @@ def _reviewer_card(
     if not category_highlights and view.get("risk_level"):
         category_highlights = [f"Final risk level: {view['risk_level']}"]
     summary = str(view.get("summary") or "")
-
-    story.append(
-        _table(
-            [[
-                _p(f"<b>{view['label']}</b>", styles["section"]),
-                _p(f"<font color='{_html_color(verdict_color)}'><b>{verdict}</b></font>", styles["body"]),
-                _p(f"Confidence: {view['confidence']}", styles["body"]),
-            ]],
-            [68 * mm, 45 * mm, 69 * mm],
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), header_bg),
-                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ],
-        )
+    header_table = _table(
+        [[
+            _p(f"<b>{view['label']}</b>", styles["section"]),
+            _p(f"<font color='{_html_color(verdict_color)}'><b>{verdict}</b></font>", styles["body"]),
+            _p(f"Confidence: {view['confidence']}", styles["body"]),
+        ]],
+        [68 * mm, 45 * mm, 69 * mm],
+        [
+            ("BACKGROUND", (0, 0), (-1, -1), header_bg),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ],
     )
-    story.append(
-        _table(
+    meta_table = _table(
+        [
+            [_p("RISK SCORE", styles["small_label"]), _p("RISK LEVEL", styles["small_label"]), _p("CATEGORIES", styles["small_label"])],
             [
-                [_p("RISK SCORE", styles["small_label"]), _p("RISK LEVEL", styles["small_label"]), _p("CATEGORIES", styles["small_label"])],
-                [
-                    _p(str(view["risk_score"]), styles["metric_red"] if verdict == "Unsafe" else styles["metric_gold"]),
-                    _p(str(view["risk_level"]), styles["metric_gold"]),
-                    _p(" · ".join(str(item) for item in category_highlights), styles["body"]),
-                ],
+                _p(str(view["risk_score"]), styles["metric_red"] if verdict == "Unsafe" else styles["metric_gold"]),
+                _p(str(view["risk_level"]), styles["metric_gold"]),
+                _p(" · ".join(str(item) for item in category_highlights), styles["body"]),
             ],
-            [32 * mm, 42 * mm, 108 * mm],
-            [
-                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                ("INNERGRID", (0, 0), (-1, -1), 0.75, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, 0), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-                ("TOPPADDING", (0, 1), (-1, 1), 14),
-                ("BOTTOMPADDING", (0, 1), (-1, 1), 14),
-            ],
-        )
+        ],
+        [32 * mm, 42 * mm, 108 * mm],
+        [
+            ("INNERGRID", (0, 0), (-1, -1), 0.75, BORDER),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, 0), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("TOPPADDING", (0, 1), (-1, 1), 14),
+            ("BOTTOMPADDING", (0, 1), (-1, 1), 14),
+        ],
     )
     key_risks_text = "<br/>".join(f"• {item}" for item in key_risks)
     mitigations_text = "<br/>".join(f"• {item}" for item in mitigations)
-    story.append(
-        _table(
-            [
-                [_p("<b>Key risks</b>", styles["body"]), _p("<b>Recommendations</b>", styles["body"])],
-                [_p(key_risks_text or "No key risks recorded.", styles["body"]), _p(mitigations_text or "No recommendations recorded.", styles["body"])],
-            ],
-            [91 * mm, 91 * mm],
-            [
-                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                ("INNERGRID", (0, 0), (-1, -1), 0.75, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, 0), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-                ("TOPPADDING", (0, 1), (-1, 1), 8),
-                ("BOTTOMPADDING", (0, 1), (-1, 1), 12),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ],
-        )
+    two_col_table = _table(
+        [
+            [_p("<b>Key risks</b>", styles["body"]), _p("<b>Recommendations</b>", styles["body"])],
+            [_p(key_risks_text or "No key risks recorded.", styles["body"]), _p(mitigations_text or "No recommendations recorded.", styles["body"])],
+        ],
+        [91 * mm, 91 * mm],
+        [
+            ("INNERGRID", (0, 0), (-1, -1), 0.75, BORDER),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, 0), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("TOPPADDING", (0, 1), (-1, 1), 8),
+            ("BOTTOMPADDING", (0, 1), (-1, 1), 12),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ],
+    )
+    summary_table = _table(
+        [[_p("Summary", styles["body_muted"]), _p(summary, styles["body_muted"])]],
+        [22 * mm, 160 * mm],
+        [
+            ("BACKGROUND", (0, 0), (-1, -1), BG_SOFT),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ],
     )
     story.append(
         _table(
-            [[_p("Summary", styles["body_muted"]), _p(summary, styles["body_muted"])]],
-            [22 * mm, 160 * mm],
+            [[header_table], [meta_table], [two_col_table], [summary_table]],
+            [182 * mm],
             [
-                ("BACKGROUND", (0, 0), (-1, -1), BG_SOFT),
                 ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("LINEBEFORE", (0, 0), (0, -1), 3, verdict_color),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("ROUNDEDCORNERS", [6]),
             ],
         )
     )
@@ -731,10 +824,10 @@ def generate_report_pdf(
     doc = SimpleDocTemplate(
         str(output_path),
         pagesize=A4,
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
-        topMargin=16 * mm,
-        bottomMargin=16 * mm,
+        leftMargin=14 * mm,
+        rightMargin=14 * mm,
+        topMargin=14 * mm,
+        bottomMargin=18 * mm,
     )
     story: list[object] = []
 
@@ -756,4 +849,4 @@ def generate_report_pdf(
     _reviewer_card(story, styles, final_view)
     _required_actions_page(story, styles, final_view, settings)
 
-    doc.build(story)
+    doc.build(story, onFirstPage=_page_chrome, onLaterPages=_page_chrome)
