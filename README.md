@@ -146,6 +146,22 @@ streamlit run src/ui/app.py
 
 Then open the local Streamlit URL shown in the terminal.
 
+## Run Tests
+
+The repository already includes an automated test suite under [`tests/`](tests).
+
+Preferred:
+
+```bash
+uv run pytest
+```
+
+Fallback:
+
+```bash
+pytest
+```
+
 ## Optional Docker Run
 
 If you prefer a containerized path, or if the evaluation machine does not have `uv`, you can run the app with Docker.
@@ -169,6 +185,35 @@ http://localhost:8501
 ```
 
 If you are running on a remote machine, replace `localhost` with the machine IP or forwarded host.
+
+## Troubleshooting
+
+If the evaluation environment cannot find `uv`:
+
+```bash
+pip install -r requirements.txt
+streamlit run src/ui/app.py
+```
+
+If the evaluation environment has trouble with local Python setup, use Docker:
+
+```bash
+docker build -t ai-safety-lab .
+docker run --env-file .env -p 8501:8501 ai-safety-lab
+```
+
+If an API key is missing, set one or more of these environment variables before running the app:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY`
+
+If a run fails, inspect the generated artifacts in `runs/<timestamp>/`. In addition to the judge outputs and PDF report, each run now includes:
+
+- `execution_trace.json`
+- `run_summary.json`
+
+These files show which stage ran, which provider/model was used, and which stage failed if the pipeline stopped early.
 
 ## Recommended Evaluator Flow
 
