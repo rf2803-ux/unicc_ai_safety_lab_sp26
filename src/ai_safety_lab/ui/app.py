@@ -1149,12 +1149,12 @@ def _control_assessment_height(controls: list[dict[str, Any]]) -> int:
 
 
 def _intake_cards_height(section_lengths: list[int]) -> int:
-    total = 120
-    for length in section_lengths:
-        total += 76
-        if length > 0:
-            total += min(length, 8) * 42
-    return max(total, 320)
+    card_count = len(section_lengths)
+    if card_count == 0:
+        return 0
+    # Cards start collapsed by default, so optimize the initial iframe height
+    # for the compact state and let the client-side resize logic grow it on open.
+    return 24 + (card_count * 92)
 
 
 def _render_control_assessment(view: dict[str, Any]) -> None:
