@@ -585,19 +585,354 @@ def _render_reviewer_panel(view: dict[str, Any], *, final_panel: bool = False) -
                     st.caption(snippet)
 
 
+def _final_assessment_tokens(view: dict[str, Any]) -> dict[str, str]:
+    verdict = str(view.get("verdict", "Needs Review"))
+    risk_level = str(view.get("risk_level", "Medium"))
+    confidence = str(view.get("confidence", "Medium"))
+    verdict_tokens = {
+        "Unsafe": {
+            "accent": "#E24B4A",
+            "verdict_color": "#E24B4A",
+            "risk_badge_bg": "#FCEBEB",
+            "risk_badge_text": "#791F1F",
+        },
+        "Needs Review": {
+            "accent": "#BA7517",
+            "verdict_color": "#BA7517",
+            "risk_badge_bg": "#FAEEDA",
+            "risk_badge_text": "#633806",
+        },
+        "Safe": {
+            "accent": "#0F6E56",
+            "verdict_color": "#0F6E56",
+            "risk_badge_bg": "#E1F5EE",
+            "risk_badge_text": "#085041",
+        },
+    }
+    level_colors = {
+        "High": "#E24B4A",
+        "Medium": "#BA7517",
+        "Low": "#0F6E56",
+    }
+    tokens = verdict_tokens.get(verdict, verdict_tokens["Needs Review"])
+    parts = verdict.rsplit(" ", 1)
+    verdict_prefix = parts[0] + " " if len(parts) > 1 else ""
+    verdict_keyword = parts[-1]
+    return {
+        "accent_color": tokens["accent"],
+        "verdict_color": tokens["verdict_color"],
+        "verdict_prefix": verdict_prefix,
+        "verdict_keyword": verdict_keyword,
+        "risk_badge_bg": tokens["risk_badge_bg"],
+        "risk_badge_text": tokens["risk_badge_text"],
+        "risk_level": risk_level,
+        "risk_level_color": level_colors.get(risk_level, "#2C2C2A"),
+        "confidence": confidence,
+        "confidence_color": level_colors.get(confidence, "#2C2C2A"),
+        "risk_score": str(view.get("risk_score", "—")),
+        "reviewer_count": str(view.get("reviewer_count", 3)),
+        "recommendation": str(view.get("recommendation", "")),
+        "supporting_line": str(view.get("supporting_line", "")),
+    }
+
+
 def _render_decision_card(view: dict[str, Any]) -> None:
-    st.markdown(
-        f"""
-        <div class="decision-card">
-            <h3>Final Assessment: {view["verdict"]}</h3>
-            <p><strong>Risk Level:</strong> {view["risk_level"]}</p>
-            <p><strong>Confidence:</strong> {view["confidence"]}</p>
-            <p><strong>Recommendation:</strong> {view["recommendation"]}</p>
-            <p>{view["supporting_line"]}</p>
+    tokens = _final_assessment_tokens(view)
+    section_html = f"""
+    <div class="fa-card">
+      <div class="fa-card-top">
+        <div class="fa-accent" style="background:{tokens['accent_color']}"></div>
+        <div class="fa-inner">
+          <div class="fa-top-row">
+            <div class="fa-title-block">
+              <div class="fa-eyebrow">Final assessment</div>
+              <div class="fa-verdict">
+                {html.escape(tokens['verdict_prefix'])}<span style="color:{tokens['verdict_color']}">{html.escape(tokens['verdict_keyword'])}</span>
+              </div>
+            </div>
+            <div class="fa-badge-group">
+              <span class="fa-badge" style="background:{tokens['risk_badge_bg']}; color:{tokens['risk_badge_text']}">
+                {html.escape(tokens['risk_level'])} risk
+              </span>
+              <span class="fa-badge fa-badge-neutral">{html.escape(tokens['confidence'])} confidence</span>
+              <span class="fa-badge fa-badge-neutral">Score {html.escape(tokens['risk_score'])} / 5</span>
+            </div>
+          </div>
+          <div class="fa-divider"></div>
+          <div class="fa-metrics">
+            <div class="fa-metric">
+              <div class="fa-metric-lbl">Risk level</div>
+              <div class="fa-metric-val" style="color:{tokens['risk_level_color']}">{html.escape(tokens['risk_level'])}</div>
+            </div>
+            <div class="fa-metric">
+              <div class="fa-metric-lbl">Confidence</div>
+              <div class="fa-metric-val" style="color:{tokens['confidence_color']}">{html.escape(tokens['confidence'])}</div>
+            </div>
+            <div class="fa-metric">
+              <div class="fa-metric-lbl">Reviewers</div>
+              <div class="fa-metric-val">{html.escape(tokens['reviewer_count'])} experts</div>
+            </div>
+          </div>
+          <div class="fa-rec-row">
+            <svg class="fa-rec-icon" style="color:{tokens['accent_color']}" viewBox="0 0 16 16" fill="none" width="16" height="16">
+              <path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zm0 4v3m0 2v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <div class="fa-rec-text"><strong>Recommendation:</strong> {html.escape(tokens['recommendation'])}</div>
+          </div>
+          <div class="fa-footer">{html.escape(tokens['supporting_line'])}</div>
         </div>
-        """,
-        unsafe_allow_html=True,
+      </div>
+    </div>
+    <style>
+      body {{
+        margin: 0;
+        background: #FFFFFF;
+        font-family: "Inter", "Segoe UI", sans-serif;
+      }}
+      .fa-card {{
+        background: #FFFFFF;
+        border: 0.5px solid #D3D1C7;
+        border-radius: 12px;
+        overflow: hidden;
+      }}
+      .fa-card-top {{
+        display: flex;
+        align-items: stretch;
+      }}
+      .fa-accent {{
+        width: 4px;
+        flex-shrink: 0;
+      }}
+      .fa-inner {{
+        flex: 1;
+        padding: 20px 24px;
+      }}
+      .fa-top-row {{
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }}
+      .fa-eyebrow {{
+        font-size: 10px;
+        font-weight: 500;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }}
+      .fa-verdict {{
+        font-size: 20px;
+        font-weight: 500;
+        color: #2C2C2A;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }}
+      .fa-badge-group {{
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+        padding-top: 4px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }}
+      .fa-badge {{
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+      }}
+      .fa-badge-neutral {{
+        background: #F1EFE8;
+        color: #5F5E5A;
+      }}
+      .fa-divider {{
+        height: 0.5px;
+        background: #E3E1DA;
+        margin-bottom: 16px;
+      }}
+      .fa-metrics {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 16px;
+      }}
+      .fa-metric {{
+        padding: 0 16px;
+        border-right: 0.5px solid #E3E1DA;
+      }}
+      .fa-metric:first-child {{
+        padding-left: 0;
+      }}
+      .fa-metric:last-child {{
+        border-right: none;
+        padding-right: 0;
+      }}
+      .fa-metric-lbl {{
+        font-size: 10px;
+        font-weight: 500;
+        color: #888780;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }}
+      .fa-metric-val {{
+        font-size: 15px;
+        font-weight: 500;
+        color: #2C2C2A;
+      }}
+      .fa-rec-row {{
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        background: #F7F6F3;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }}
+      .fa-rec-icon {{
+        flex-shrink: 0;
+        margin-top: 1px;
+      }}
+      .fa-rec-text {{
+        font-size: 12px;
+        color: #2C2C2A;
+        line-height: 1.5;
+      }}
+      .fa-rec-text strong {{
+        font-weight: 500;
+      }}
+      .fa-footer {{
+        font-size: 11px;
+        color: #888780;
+        line-height: 1.5;
+      }}
+      @media (max-width: 560px) {{
+        .fa-top-row {{
+          flex-direction: column;
+          align-items: flex-start;
+        }}
+        .fa-badge-group {{
+          justify-content: flex-start;
+          padding-top: 0;
+        }}
+        .fa-metrics {{
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }}
+        .fa-metric {{
+          padding: 0;
+          border-right: none;
+        }}
+      }}
+    </style>
+    """
+    components.html(section_html, height=255, scrolling=False)
+
+
+def _render_decision_reasons_card(view: dict[str, Any]) -> None:
+    reasons = [html.escape(str(item)) for item in view.get("reasons", [])]
+    if not reasons:
+        return
+    items_html = "".join(
+        f"""
+        <div class="wr-item">
+          <div class="wr-dot"></div>
+          <div class="wr-text">{item}</div>
+        </div>
+        """
+        for item in reasons
     )
+    section_html = f"""
+    <div class="wr-card">
+      <div class="wr-accent"></div>
+      <div class="wr-inner">
+        <div class="wr-eyebrow">Decision rationale</div>
+        <div class="wr-title">Why this decision was made</div>
+        <div class="wr-subtitle">
+          Consolidated reasons extracted from the final assessment and expert reviewer evidence.
+        </div>
+        <div class="wr-list">
+          {items_html}
+        </div>
+      </div>
+    </div>
+    <style>
+      body {{
+        margin: 0;
+        background: #FFFFFF;
+        font-family: "Inter", "Segoe UI", sans-serif;
+      }}
+      .wr-card {{
+        background: #FFFFFF;
+        border: 0.5px solid #D3D1C7;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+      }}
+      .wr-accent {{
+        width: 4px;
+        flex-shrink: 0;
+        background: #BA7517;
+      }}
+      .wr-inner {{
+        flex: 1;
+        padding: 18px 22px;
+      }}
+      .wr-eyebrow {{
+        font-size: 10px;
+        font-weight: 500;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }}
+      .wr-title {{
+        font-size: 18px;
+        font-weight: 600;
+        color: #2C2C2A;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        margin-bottom: 6px;
+      }}
+      .wr-subtitle {{
+        font-size: 12px;
+        color: #888780;
+        line-height: 1.5;
+        margin-bottom: 14px;
+        max-width: 760px;
+      }}
+      .wr-list {{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }}
+      .wr-item {{
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #F7F6F3;
+      }}
+      .wr-dot {{
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #BA7517;
+        margin-top: 7px;
+        flex-shrink: 0;
+      }}
+      .wr-text {{
+        font-size: 12px;
+        color: #2C2C2A;
+        line-height: 1.55;
+      }}
+    </style>
+    """
+    height = max(190, 120 + (len(reasons) * 54))
+    components.html(section_html, height=height, scrolling=False)
 
 
 def _render_alignment_block(view: dict[str, Any]) -> None:
@@ -612,18 +947,155 @@ def _render_alignment_block(view: dict[str, Any]) -> None:
 
 
 def _render_framework_alignment(view: dict[str, Any]) -> None:
-    st.markdown("### Framework Alignment")
-    with st.container(border=True):
-        st.caption(
-            "The UNICC Review Framework is aligned to principles from NIST AI RMF and supports assessment "
-            "against selected governance, transparency, traceability, robustness, and oversight themes "
-            "reflected in ISO/IEC 42001 and the EU AI Act."
+    alignment_items = list(view.get("framework_alignment", []))
+    if not alignment_items:
+        return
+
+    cards_html = []
+    for item in alignment_items:
+        cards_html.append(
+            f"""
+            <div class="fw-item">
+              <div class="fw-item-title">{html.escape(str(item['label']))}</div>
+              <div class="fw-grid">
+                <div class="fw-col">
+                  <div class="fw-label">NIST AI RMF</div>
+                  <div class="fw-val">{html.escape(', '.join(item['nist']))}</div>
+                </div>
+                <div class="fw-col">
+                  <div class="fw-label">ISO/IEC 42001</div>
+                  <div class="fw-val">{html.escape(', '.join(item['iso']))}</div>
+                </div>
+                <div class="fw-col">
+                  <div class="fw-label">EU AI Act</div>
+                  <div class="fw-val">{html.escape(', '.join(item['eu']))}</div>
+                </div>
+              </div>
+            </div>
+            """
         )
-        for item in view.get("framework_alignment", []):
-            st.write(f"**{item['label']}**")
-            st.write(f"- NIST AI RMF: {', '.join(item['nist'])}")
-            st.write(f"- ISO/IEC 42001: {', '.join(item['iso'])}")
-            st.write(f"- EU AI Act: {', '.join(item['eu'])}")
+
+    section_html = f"""
+    <div class="fw-card">
+      <div class="fw-accent"></div>
+      <div class="fw-inner">
+        <div class="fw-eyebrow">Framework mapping</div>
+        <div class="fw-title">Framework Alignment</div>
+        <div class="fw-subtitle">
+          The UNICC Review Framework is aligned to principles from NIST AI RMF and supports assessment
+          against selected governance, transparency, traceability, robustness, and oversight themes
+          reflected in ISO/IEC 42001 and the EU AI Act.
+        </div>
+        <div class="fw-list">
+          {''.join(cards_html)}
+        </div>
+      </div>
+    </div>
+    <style>
+      body {{
+        margin: 0;
+        background: #FFFFFF;
+        font-family: "Inter", "Segoe UI", sans-serif;
+      }}
+      .fw-card {{
+        background: #FFFFFF;
+        border: 0.5px solid #D3D1C7;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+      }}
+      .fw-accent {{
+        width: 4px;
+        flex-shrink: 0;
+        background: #185FA5;
+      }}
+      .fw-inner {{
+        flex: 1;
+        padding: 18px 22px;
+      }}
+      .fw-eyebrow {{
+        font-size: 10px;
+        font-weight: 500;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }}
+      .fw-title {{
+        font-size: 18px;
+        font-weight: 600;
+        color: #2C2C2A;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        margin-bottom: 6px;
+      }}
+      .fw-subtitle {{
+        font-size: 12px;
+        color: #888780;
+        line-height: 1.5;
+        margin-bottom: 14px;
+        max-width: 780px;
+      }}
+      .fw-list {{
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }}
+      .fw-item {{
+        border: 0.5px solid #E3E1DA;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #FFFFFF;
+      }}
+      .fw-item-title {{
+        padding: 12px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2C2C2A;
+        background: #F7F6F3;
+        border-bottom: 0.5px solid #E3E1DA;
+      }}
+      .fw-grid {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        background: #FFFFFF;
+      }}
+      .fw-col {{
+        padding: 13px 14px;
+        border-right: 0.5px solid #E3E1DA;
+      }}
+      .fw-col:last-child {{
+        border-right: none;
+      }}
+      .fw-label {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }}
+      .fw-val {{
+        font-size: 12px;
+        color: #5F5E5A;
+        line-height: 1.55;
+      }}
+      @media (max-width: 820px) {{
+        .fw-grid {{
+          grid-template-columns: 1fr;
+        }}
+        .fw-col {{
+          border-right: none;
+          border-bottom: 0.5px solid #E3E1DA;
+        }}
+        .fw-col:last-child {{
+          border-bottom: none;
+        }}
+      }}
+    </style>
+    """
+    height = max(220, 150 + (len(alignment_items) * 138))
+    components.html(section_html, height=height, scrolling=False)
 
 
 def _control_card_tokens(control: dict[str, Any]) -> dict[str, str]:
@@ -768,11 +1240,11 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
     <style>
       body {{
         margin: 0;
-        background: #F7F6F3;
+        background: #FFFFFF;
         font-family: "Inter", "Segoe UI", sans-serif;
       }}
       .ca-root {{
-        background: #F7F6F3;
+        background: #FFFFFF;
         padding: 0 0 8px 0;
       }}
       .ca-section-title {{
@@ -1000,7 +1472,10 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
       }}
       document.addEventListener('DOMContentLoaded', () => {{
         document.querySelectorAll('.ca-body-wrap').forEach(el => {{
-          el.style.maxHeight = 'none';
+          el.style.maxHeight = '0px';
+        }});
+        document.querySelectorAll('.ca-chevron').forEach(el => {{
+          el.classList.remove('open');
         }});
       }});
     </script>
@@ -1102,10 +1577,7 @@ def _render_results(run_result) -> None:
     reviewer_views = [reviewer_panel_view(output) for output in run_result.judge_outputs]
 
     _render_decision_card(final_view)
-    st.markdown("### Why this decision was made")
-    with st.container(border=True):
-        for item in final_view["reasons"]:
-            st.write(f"- {item}")
+    _render_decision_reasons_card(final_view)
 
     _render_framework_alignment(final_view)
     _render_control_assessment(final_view)
