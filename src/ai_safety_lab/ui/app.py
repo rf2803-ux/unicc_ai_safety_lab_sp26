@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -625,32 +626,387 @@ def _render_framework_alignment(view: dict[str, Any]) -> None:
             st.write(f"- EU AI Act: {', '.join(item['eu'])}")
 
 
+def _control_card_tokens(control: dict[str, Any]) -> dict[str, str]:
+    primary_category = str((control.get("categories") or ["Auditability"])[0])
+    status = str(control.get("status") or "Needs attention")
+
+    accent_colors = {
+        "Auditability": "#BA7517",
+        "Governance": "#BA7517",
+        "Transparency": "#185FA5",
+        "Transparency and User Disclosure": "#185FA5",
+        "Prompt Injection": "#185FA5",
+        "Privacy": "#E24B4A",
+        "Harmful Content": "#E24B4A",
+        "Security": "#E24B4A",
+        "Deception": "#E24B4A",
+        "Bias / Fairness": "#BA7517",
+    }
+    primary_evidence_bg = {
+        "Auditability": "rgba(250,238,218,0.5)",
+        "Governance": "rgba(250,238,218,0.5)",
+        "Transparency": "rgba(230,241,251,0.5)",
+        "Transparency and User Disclosure": "rgba(230,241,251,0.5)",
+        "Prompt Injection": "rgba(230,241,251,0.5)",
+        "Privacy": "rgba(252,235,235,0.6)",
+        "Harmful Content": "rgba(252,235,235,0.6)",
+        "Security": "rgba(252,235,235,0.6)",
+        "Deception": "rgba(252,235,235,0.6)",
+        "Bias / Fairness": "rgba(250,238,218,0.5)",
+    }
+    status_pills = {
+        "Needs attention": {"bg": "#FAEEDA", "text": "#633806"},
+        "Review needed": {"bg": "#E6F1FB", "text": "#0C447C"},
+        "Better supported": {"bg": "#E1F5EE", "text": "#085041"},
+    }
+    pill = status_pills.get(status, status_pills["Needs attention"])
+    return {
+        "accent_color": accent_colors.get(primary_category, "#888780"),
+        "primary_evidence_bg": primary_evidence_bg.get(primary_category, "rgba(241,239,232,0.5)"),
+        "pill_bg": pill["bg"],
+        "pill_text": pill["text"],
+    }
+
+
+def _control_assessment_height(controls: list[dict[str, Any]]) -> int:
+    base = 142
+    total = 130
+    for control in controls:
+        evidence_count = max(1, len(control.get("evidence", [])))
+        total += base + (evidence_count * 58)
+    return max(total, 620)
+
+
 def _render_control_assessment(view: dict[str, Any]) -> None:
-    st.markdown("### Control Assessment")
-    st.caption(
-        "These control summaries are derived from the evidence currently surfaced by the review workflow. "
-        "They support structured assurance and remediation planning, but they are not a certification or legal compliance determination."
-    )
-    for control in view.get("control_assessment", []):
-        with st.container(border=True):
-            st.write(f"**{control['label']}**")
-            st.write(control["description"])
-            st.write(
-                f"**Status:** {control['status']} | **Average category score:** {control['average_score']} / 5"
-            )
-            st.caption(control["status_summary"])
-            st.write(f"**Mapped categories:** {', '.join(control['categories'])}")
-            _render_bullet_section(
-                "Supporting Evidence",
-                list(control.get("evidence", [])),
-                "No supporting evidence was surfaced for this control.",
-            )
-            with st.expander("Framework Mapping", expanded=False):
-                for item in control.get("framework_alignment", []):
-                    st.write(f"- **{item['label']}**")
-                    st.write(f"  NIST AI RMF: {', '.join(item['nist'])}")
-                    st.write(f"  ISO/IEC 42001: {', '.join(item['iso'])}")
-                    st.write(f"  EU AI Act: {', '.join(item['eu'])}")
+    controls = list(view.get("control_assessment", []))
+    if not controls:
+        return
+
+    cards_html: list[str] = []
+    for index, control in enumerate(controls):
+        tokens = _control_card_tokens(control)
+        control_id = f"ca-{index}"
+        category = html.escape(str((control.get("categories") or ["Unknown"])[0]))
+        evidence = [html.escape(str(item)) for item in control.get("evidence", [])]
+        primary_evidence = evidence[0] if evidence else "No supporting evidence was surfaced for this control."
+        secondary_evidence = evidence[1:]
+        framework = list(control.get("framework_alignment", []))
+        framework_item = framework[0] if framework else {"nist": [], "iso": [], "eu": []}
+
+        secondary_items_html = "".join(
+            f"""
+            <div class="ca-ev-item ca-ev-secondary">
+              <div class="ca-ev-dot" style="background:#D3D1C7"></div>
+              <span>{item}</span>
+            </div>
+            """
+            for item in secondary_evidence
+        )
+
+        cards_html.append(
+            f"""
+            <div class="ca-card" id="card-{control_id}">
+              <div class="ca-hdr" onclick="caToggle('{control_id}')">
+                <div class="ca-accent" style="background:{tokens['accent_color']}"></div>
+                <div class="ca-hdr-main">
+                  <div class="ca-title">{html.escape(str(control['label']))}</div>
+                  <div class="ca-desc">{html.escape(str(control['description']))}</div>
+                </div>
+                <div class="ca-hdr-right">
+                  <span class="ca-pill" style="background:{tokens['pill_bg']}; color:{tokens['pill_text']}">
+                    {html.escape(str(control['status']))}
+                  </span>
+                  <span class="ca-score">{html.escape(str(control['average_score']))} / 5</span>
+                  <svg class="ca-chevron open" id="chev-{control_id}" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="ca-body-wrap" id="body-{control_id}">
+                <div class="ca-meta">
+                  <div class="ca-meta-cell">Category: <strong>{category}</strong></div>
+                  <div class="ca-meta-cell">Signals: <strong>{len(control.get('evidence', []))}</strong></div>
+                  <div class="ca-meta-cell">Finding: <strong>{html.escape(str(control['status_summary']))}</strong></div>
+                </div>
+                <div class="ca-evidence">
+                  <div class="ca-ev-label">Supporting evidence</div>
+                  <div class="ca-ev-item ca-ev-primary" style="background:{tokens['primary_evidence_bg']}">
+                    <div class="ca-ev-dot" style="background:{tokens['accent_color']}"></div>
+                    <span>{primary_evidence}</span>
+                  </div>
+                  {secondary_items_html}
+                </div>
+                <div class="ca-fw-grid">
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">NIST AI RMF</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('nist', [])))}</div>
+                  </div>
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">ISO/IEC 42001</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('iso', [])))}</div>
+                  </div>
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">EU AI Act</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('eu', [])))}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            """
+        )
+
+    section_html = f"""
+    <div class="ca-root">
+      <div class="ca-section-title">Control Assessment</div>
+      <div class="ca-section-desc">
+        These control summaries are derived from the evidence currently surfaced by the review workflow.
+        They support structured assurance and remediation planning, but they are not a certification
+        or legal compliance determination.
+      </div>
+      {''.join(cards_html)}
+    </div>
+    <style>
+      body {{
+        margin: 0;
+        background: #F7F6F3;
+        font-family: "Inter", "Segoe UI", sans-serif;
+      }}
+      .ca-root {{
+        background: #F7F6F3;
+        padding: 0 0 8px 0;
+      }}
+      .ca-section-title {{
+        font-size: 22px;
+        font-weight: 600;
+        color: #2C2C2A;
+        margin-bottom: 6px;
+        letter-spacing: -0.01em;
+      }}
+      .ca-section-desc {{
+        font-size: 13px;
+        color: #888780;
+        line-height: 1.6;
+        max-width: 720px;
+        margin-bottom: 22px;
+      }}
+      .ca-card {{
+        background: #FFFFFF;
+        border: 0.5px solid #D3D1C7;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 0 rgba(44, 44, 42, 0.02);
+      }}
+      .ca-hdr {{
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        cursor: pointer;
+        user-select: none;
+        background: #FFFFFF;
+        transition: background 0.15s;
+      }}
+      .ca-hdr:hover {{
+        background: #F7F6F3;
+      }}
+      .ca-accent {{
+        width: 3px;
+        height: 42px;
+        flex-shrink: 0;
+      }}
+      .ca-hdr-main {{
+        flex: 1;
+        min-width: 0;
+      }}
+      .ca-title {{
+        font-size: 15px;
+        font-weight: 600;
+        color: #2C2C2A;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+      }}
+      .ca-desc {{
+        font-size: 11.5px;
+        color: #888780;
+        line-height: 1.45;
+        max-width: 760px;
+      }}
+      .ca-hdr-right {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+        padding-left: 8px;
+      }}
+      .ca-pill {{
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 13px;
+        border-radius: 20px;
+        white-space: nowrap;
+      }}
+      .ca-score {{
+        font-size: 11px;
+        font-weight: 500;
+        color: #888780;
+        white-space: nowrap;
+      }}
+      .ca-chevron {{
+        color: #B4B2A9;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+        margin-left: 2px;
+      }}
+      .ca-chevron.open {{
+        transform: rotate(180deg);
+      }}
+      .ca-body-wrap {{
+        overflow: hidden;
+        transition: max-height 0.25s ease;
+      }}
+      .ca-meta {{
+        display: grid;
+        grid-template-columns: 1.2fr 0.65fr 1.45fr;
+        border-top: 0.5px solid #E3E1DA;
+      }}
+      .ca-meta-cell {{
+        padding: 10px 16px;
+        font-size: 11px;
+        color: #888780;
+        border-right: 0.5px solid #E3E1DA;
+        background: #F7F6F3;
+        line-height: 1.35;
+      }}
+      .ca-meta-cell:last-child {{
+        border-right: none;
+      }}
+      .ca-meta-cell strong {{
+        color: #2C2C2A;
+        font-weight: 500;
+      }}
+      .ca-evidence {{
+        padding: 16px 18px;
+        background: #FFFFFF;
+      }}
+      .ca-ev-label {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }}
+      .ca-ev-item {{
+        display: flex;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #2C2C2A;
+      }}
+      .ca-ev-item:last-child {{
+        margin-bottom: 0;
+      }}
+      .ca-ev-secondary {{
+        background: #F7F6F3;
+      }}
+      .ca-ev-dot {{
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        margin-top: 6px;
+        flex-shrink: 0;
+      }}
+      .ca-fw-grid {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 0.5px solid #E3E1DA;
+        background: #F7F6F3;
+      }}
+      .ca-fw-col {{
+        padding: 13px 16px;
+        border-right: 0.5px solid #E3E1DA;
+        font-size: 11px;
+      }}
+      .ca-fw-col:last-child {{
+        border-right: none;
+      }}
+      .ca-fw-label {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }}
+      .ca-fw-val {{
+        color: #5F5E5A;
+        line-height: 1.55;
+      }}
+      @media (max-width: 820px) {{
+        .ca-hdr {{
+          align-items: flex-start;
+        }}
+        .ca-hdr-right {{
+          gap: 8px;
+          padding-left: 0;
+        }}
+        .ca-meta {{
+          grid-template-columns: 1fr;
+        }}
+        .ca-meta-cell {{
+          border-right: none;
+          border-bottom: 0.5px solid #E3E1DA;
+        }}
+        .ca-meta-cell:last-child {{
+          border-bottom: none;
+        }}
+        .ca-fw-grid {{
+          grid-template-columns: 1fr;
+        }}
+        .ca-fw-col {{
+          border-right: none;
+          border-bottom: 0.5px solid #E3E1DA;
+        }}
+        .ca-fw-col:last-child {{
+          border-bottom: none;
+        }}
+      }}
+    </style>
+    <script>
+      function caToggle(id) {{
+        const body = document.getElementById('body-' + id);
+        const chev = document.getElementById('chev-' + id);
+        const isOpen = chev.classList.contains('open');
+        if (isOpen) {{
+          body.style.maxHeight = body.scrollHeight + 'px';
+          requestAnimationFrame(() => {{
+            requestAnimationFrame(() => {{
+              body.style.maxHeight = '0px';
+            }});
+          }});
+          chev.classList.remove('open');
+        }} else {{
+          body.style.maxHeight = body.scrollHeight + 'px';
+          chev.classList.add('open');
+          setTimeout(() => {{
+            body.style.maxHeight = 'none';
+          }}, 260);
+        }}
+      }}
+      document.addEventListener('DOMContentLoaded', () => {{
+        document.querySelectorAll('.ca-body-wrap').forEach(el => {{
+          el.style.maxHeight = 'none';
+        }});
+      }});
+    </script>
+    """
+
+    components.html(section_html, height=_control_assessment_height(controls), scrolling=False)
 
 
 def _render_input_preview(bundle: dict[str, Any]) -> None:
