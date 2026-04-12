@@ -85,3 +85,56 @@ def test_normalize_judge_payload_accepts_nonstandard_nested_shape() -> None:
     assert output.overall_verdict == "SAFE"
     assert output.overall_score == 5
     assert output.category_scores["bias_discrimination_hate"].score == 4
+
+
+def test_normalize_judge_payload_stringifies_structured_evidence_snippets() -> None:
+    payload = {
+        "overall_verdict": "UNSAFE",
+        "overall_score": 2,
+        "confidence": "MEDIUM",
+        "category_scores": {
+            "privacy_data_leakage": {
+                "score": 2,
+                "rationale": "Repository shows upload and media handling risk.",
+                "evidence_snippets": [
+                    {
+                        "source_ref": {"path": "app.py"},
+                        "excerpt": "Users can upload audio, video, or text files.",
+                    }
+                ],
+            },
+            "harmful_content_unsafe_instructions": {"score": 2, "rationale": "Unsafe content is plausible.", "evidence_snippets": ["OpenAI fine-tuning pipeline present."]},
+            "cyber_misuse": {"score": 2, "rationale": "Upload surface increases attack paths.", "evidence_snippets": ["Route accepts GET and POST."]},
+            "bias_discrimination_hate": {
+                "score": 1,
+                "rationale": "Problematic training examples were detected.",
+                "evidence_snippets": [
+                    {
+                        "source_ref": {"path": "training/problematic.txt"},
+                        "excerpt": "Dehumanizing and discriminatory text present.",
+                    }
+                ],
+            },
+            "deception_impersonation_overclaiming": {"score": 2, "rationale": "Capability messaging may overclaim.", "evidence_snippets": ["AI detection using OpenAI API."]},
+            "prompt_injection_jailbreak_resistance": {"score": 1, "rationale": "No clear defenses.", "evidence_snippets": ["Prompt handling lacks sanitization."]},
+            "transparency_reliability": {"score": 2, "rationale": "Reliability disclosures are thin.", "evidence_snippets": ["No explicit confidence calibration."]},
+            "auditability": {"score": 1, "rationale": "No logging safeguards found.", "evidence_snippets": ["No explicit audit trail mechanisms."]},
+        },
+    }
+
+    normalized = normalize_judge_payload(
+        payload,
+        judge_id="judge3",
+        judge_lens="human factors reviewer",
+        backend="gemini",
+        model="gemini-2.5-flash",
+    )
+    output = JudgeOutput.model_validate(normalized)
+
+    assert output.confidence == "MED"
+    assert output.category_scores["privacy_data_leakage"].evidence_snippets[0] == (
+        "app.py: Users can upload audio, video, or text files."
+    )
+    assert output.category_scores["bias_discrimination_hate"].evidence_snippets[0] == (
+        "training/problematic.txt: Dehumanizing and discriminatory text present."
+    )

@@ -6,13 +6,32 @@ from typing import Any
 from ai_safety_lab.constants import CATEGORY_KEYS, GOVERNANCE_DEFAULTS
 
 
+def _flatten_value_parts(value: Any) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, dict):
+        parts: list[str] = []
+        for nested in value.values():
+            parts.extend(_flatten_value_parts(nested))
+        return parts
+    if isinstance(value, list):
+        parts: list[str] = []
+        for nested in value:
+            parts.extend(_flatten_value_parts(nested))
+        return parts
+    if value is None:
+        return []
+    return [str(value)]
+
+
 def _stringify_list(values: list[Any], fallback: list[str]) -> list[str]:
     normalized: list[str] = []
     for value in values:
         if isinstance(value, str):
             normalized.append(value)
         elif isinstance(value, dict):
-            parts = [str(item) for item in value.values() if item]
+            parts = _flatten_value_parts(value)
             if parts:
                 normalized.append(": ".join(parts))
         elif value is not None:
