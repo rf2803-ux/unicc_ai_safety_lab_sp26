@@ -1141,12 +1141,20 @@ def _control_card_tokens(control: dict[str, Any]) -> dict[str, str]:
 
 
 def _control_assessment_height(controls: list[dict[str, Any]]) -> int:
-    base = 142
-    total = 130
+    base = 78
+    total = 120
     for control in controls:
-        evidence_count = max(1, len(control.get("evidence", [])))
-        total += base + (evidence_count * 58)
-    return max(total, 620)
+        total += base
+    return max(total, 260)
+
+
+def _intake_cards_height(section_lengths: list[int]) -> int:
+    total = 120
+    for length in section_lengths:
+        total += 76
+        if length > 0:
+            total += min(length, 8) * 42
+    return max(total, 320)
 
 
 def _render_control_assessment(view: dict[str, Any]) -> None:
@@ -1450,6 +1458,12 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
       }}
     </style>
     <script>
+      function caResizeFrame() {{
+        const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+        if (window.frameElement) {{
+          window.frameElement.style.height = height + 'px';
+        }}
+      }}
       function caToggle(id) {{
         const body = document.getElementById('body-' + id);
         const chev = document.getElementById('chev-' + id);
@@ -1459,6 +1473,7 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
           requestAnimationFrame(() => {{
             requestAnimationFrame(() => {{
               body.style.maxHeight = '0px';
+              setTimeout(caResizeFrame, 270);
             }});
           }});
           chev.classList.remove('open');
@@ -1467,6 +1482,7 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
           chev.classList.add('open');
           setTimeout(() => {{
             body.style.maxHeight = 'none';
+            caResizeFrame();
           }}, 260);
         }}
       }}
@@ -1477,6 +1493,7 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         document.querySelectorAll('.ca-chevron').forEach(el => {{
           el.classList.remove('open');
         }});
+        setTimeout(caResizeFrame, 0);
       }});
     </script>
     """
@@ -1491,37 +1508,266 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
     summary_cols[0].metric("Input Type", system_case.target_type.title())
     summary_cols[1].metric("Evidence Items", len(system_case.evidence.evidence_items))
     summary_cols[2].metric("Open Questions", len(system_case.derived_observations.open_questions))
+    summary_lines = [html.escape(line) for line in _summary_lines(system_case)]
+    evidence_lines = (
+        [html.escape(f"{item.category}: {item.summary}") for item in system_case.evidence.evidence_items]
+        if system_case.evidence.evidence_items
+        else ["No structured evidence items were collected for this input yet."]
+    )
+    excerpt_lines = [
+        html.escape(f"{excerpt.source_ref.path or excerpt.source_ref.source_kind}: {excerpt.excerpt}")
+        for excerpt in system_case.evidence.notable_excerpts
+    ]
+    logs = bundle.get("intake_logs", [])
+    log_lines = []
+    for entry in logs:
+        base = f"{entry['level'].upper()}: {entry['message']}"
+        if entry.get("details"):
+            base = f"{base} — {entry['details']}"
+        log_lines.append(html.escape(base))
+    open_question_lines = [html.escape(item) for item in system_case.derived_observations.open_questions]
 
-    with st.container(border=True):
-        st.write(f"Prepared input: **{bundle['source_name']}**")
-        for line in _summary_lines(system_case):
-            st.write(f"- {line}")
+    def _intake_list(items: list[str], kind: str = "neutral") -> str:
+        if not items:
+            return '<div class="is-item is-empty"><span>No items available.</span></div>'
+        color = "#185FA5" if kind == "primary" else "#D3D1C7"
+        bg = "#E6F1FB80" if kind == "primary" else "#F7F6F3"
+        parts = []
+        for index, item in enumerate(items):
+            item_kind = "primary" if index == 0 and kind == "primary" else "secondary"
+            item_bg = "#E6F1FB80" if item_kind == "primary" else "#F7F6F3"
+            dot = "#185FA5" if item_kind == "primary" else "#D3D1C7"
+            parts.append(
+                f"""
+                <div class="is-item {'is-item-primary' if item_kind == 'primary' else 'is-item-secondary'}" style="background:{item_bg}">
+                  <div class="is-dot" style="background:{dot}"></div>
+                  <span>{item}</span>
+                </div>
+                """
+            )
+        return "".join(parts)
 
-    with st.expander("Evidence Summary", expanded=False):
-        if system_case.evidence.evidence_items:
-            for item in system_case.evidence.evidence_items:
-                st.write(f"- **{item.category}**: {item.summary}")
-        else:
-            st.write("No structured evidence items were collected for this input yet.")
-        if system_case.evidence.notable_excerpts:
-            st.write("Notable excerpts")
-            for excerpt in system_case.evidence.notable_excerpts:
-                ref = excerpt.source_ref.path or excerpt.source_ref.source_kind
-                st.write(f"- `{ref}`: {excerpt.excerpt}")
+    sections = [
+        {
+            "id": "prepared",
+            "title": "Prepared input",
+            "subtitle": html.escape(bundle["source_name"]),
+            "count": len(summary_lines),
+            "body": _intake_list(summary_lines, "primary"),
+        },
+        {
+            "id": "evidence",
+            "title": "Evidence Summary",
+            "subtitle": "Structured evidence items and notable excerpts collected during intake.",
+            "count": len(evidence_lines) + len(excerpt_lines),
+            "body": (
+                '<div class="is-block-label">Evidence items</div>' + _intake_list(evidence_lines, "primary") +
+                ('<div class="is-block-label" style="margin-top:12px;">Notable excerpts</div>' + _intake_list(excerpt_lines) if excerpt_lines else "")
+            ),
+        },
+        {
+            "id": "logs",
+            "title": "Evidence & Intake Logs",
+            "subtitle": "Execution notes, collector messages, and unresolved intake questions.",
+            "count": len(log_lines) + len(open_question_lines),
+            "body": (
+                '<div class="is-block-label">Intake logs</div>' + _intake_list(log_lines, "primary") +
+                ('<div class="is-block-label" style="margin-top:12px;">Open questions</div>' + _intake_list(open_question_lines) if open_question_lines else "")
+            ),
+        },
+    ]
+    cards_html = []
+    for section in sections:
+        cards_html.append(
+            f"""
+            <div class="is-card">
+              <div class="is-hdr" onclick="isToggle('{section['id']}')">
+                <div class="is-accent"></div>
+                <div class="is-hdr-main">
+                  <div class="is-title">{section['title']}</div>
+                  <div class="is-desc">{section['subtitle']}</div>
+                </div>
+                <div class="is-hdr-right">
+                  <span class="is-pill">{section['count']} items</span>
+                  <svg class="is-chevron" id="is-chev-{section['id']}" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="is-body-wrap" id="is-body-{section['id']}">
+                <div class="is-body">
+                  {section['body']}
+                </div>
+              </div>
+            </div>
+            """
+        )
 
-    with st.expander("Evidence & Intake Logs", expanded=False):
-        logs = bundle.get("intake_logs", [])
-        if logs:
-            for entry in logs:
-                st.write(f"- **{entry['level'].upper()}**: {entry['message']}")
-                if entry.get("details"):
-                    st.caption(entry["details"])
-        else:
-            st.write("No intake logs available for this input.")
-        if system_case.derived_observations.open_questions:
-            st.write("Open questions")
-            for item in system_case.derived_observations.open_questions:
-                st.write(f"- {item}")
+    section_html = f"""
+    <div class="is-root">
+      {''.join(cards_html)}
+    </div>
+    <style>
+      body {{
+        margin: 0;
+        background: #FFFFFF;
+        font-family: "Inter", "Segoe UI", sans-serif;
+      }}
+      .is-root {{
+        background: #FFFFFF;
+        padding: 8px 0 0 0;
+      }}
+      .is-card {{
+        background: #FFFFFF;
+        border: 0.5px solid #D3D1C7;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+      }}
+      .is-hdr {{
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        cursor: pointer;
+        user-select: none;
+        background: #FFFFFF;
+      }}
+      .is-hdr:hover {{
+        background: #F7F6F3;
+      }}
+      .is-accent {{
+        width: 4px;
+        height: 40px;
+        flex-shrink: 0;
+        background: #185FA5;
+      }}
+      .is-hdr-main {{
+        flex: 1;
+        min-width: 0;
+      }}
+      .is-title {{
+        font-size: 15px;
+        font-weight: 600;
+        color: #2C2C2A;
+        line-height: 1.2;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+      }}
+      .is-desc {{
+        font-size: 11.5px;
+        color: #888780;
+        line-height: 1.45;
+      }}
+      .is-hdr-right {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+      }}
+      .is-pill {{
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border-radius: 20px;
+        background: #E6F1FB;
+        color: #0C447C;
+        white-space: nowrap;
+      }}
+      .is-chevron {{
+        color: #B4B2A9;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+      }}
+      .is-chevron.open {{
+        transform: rotate(180deg);
+      }}
+      .is-body-wrap {{
+        overflow: hidden;
+        transition: max-height 0.25s ease;
+      }}
+      .is-body {{
+        padding: 0 18px 18px 18px;
+        background: #FFFFFF;
+        border-top: 0.5px solid #E3E1DA;
+      }}
+      .is-block-label {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #888780;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin: 14px 0 10px 0;
+      }}
+      .is-item {{
+        display: flex;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 7px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #2C2C2A;
+      }}
+      .is-item:last-child {{
+        margin-bottom: 0;
+      }}
+      .is-item-secondary, .is-empty {{
+        background: #F7F6F3;
+      }}
+      .is-dot {{
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        margin-top: 6px;
+        flex-shrink: 0;
+      }}
+    </style>
+    <script>
+      function isResizeFrame() {{
+        const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+        if (window.frameElement) {{
+          window.frameElement.style.height = height + 'px';
+        }}
+      }}
+      function isToggle(id) {{
+        const body = document.getElementById('is-body-' + id);
+        const chev = document.getElementById('is-chev-' + id);
+        const isOpen = chev.classList.contains('open');
+        if (isOpen) {{
+          body.style.maxHeight = body.scrollHeight + 'px';
+          requestAnimationFrame(() => {{
+            requestAnimationFrame(() => {{
+              body.style.maxHeight = '0px';
+              setTimeout(isResizeFrame, 270);
+            }});
+          }});
+          chev.classList.remove('open');
+        }} else {{
+          body.style.maxHeight = body.scrollHeight + 'px';
+          chev.classList.add('open');
+          setTimeout(() => {{
+            body.style.maxHeight = 'none';
+            isResizeFrame();
+          }}, 260);
+        }}
+      }}
+      document.addEventListener('DOMContentLoaded', () => {{
+        document.querySelectorAll('.is-body-wrap').forEach(el => {{
+          el.style.maxHeight = '0px';
+        }});
+        document.querySelectorAll('.is-chevron').forEach(el => {{
+          el.classList.remove('open');
+        }});
+        setTimeout(isResizeFrame, 0);
+      }});
+    </script>
+    """
+    components.html(
+        section_html,
+        height=_intake_cards_height([section["count"] for section in sections]),
+        scrolling=False,
+    )
 
 
 def _run_safety_evaluation(config, bundle: dict[str, Any] | None) -> None:
