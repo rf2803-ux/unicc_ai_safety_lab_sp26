@@ -1247,63 +1247,67 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         framework_item = framework[0] if framework else {"nist": [], "iso": [], "eu": []}
 
         secondary_items_html = "".join(
-            f"""
-            <div class="ca-ev-item ca-ev-secondary">
-              <div class="ca-ev-dot" style="background:#D3D1C7"></div>
-              <span>{item}</span>
-            </div>
-            """
+            textwrap.dedent(
+                f"""
+                <div class="ca-ev-item ca-ev-secondary">
+                  <div class="ca-ev-dot" style="background:#D3D1C7"></div>
+                  <span>{item}</span>
+                </div>
+                """
+            ).strip()
             for item in secondary_evidence
         )
 
         details_cards_html.append(
-            f"""
-            <details class="ca-card">
-              <summary class="ca-hdr">
-                <div class="ca-accent" style="background:{tokens['accent_color']}"></div>
-                <div class="ca-hdr-main">
-                  <div class="ca-title">{html.escape(str(control['label']))}</div>
-                  <div class="ca-desc">{html.escape(str(control['description']))}</div>
-                </div>
-                <div class="ca-hdr-right">
-                  <span class="ca-pill" style="background:{tokens['pill_bg']}; color:{tokens['pill_text']}">
-                    {html.escape(str(control['status']))}
-                  </span>
-                  <span class="ca-score">{html.escape(str(control['average_score']))} / 5</span>
-                  <span class="ca-chevron" aria-hidden="true">⌄</span>
-                </div>
-              </summary>
-              <div class="ca-body-wrap">
-                <div class="ca-meta">
-                  <div class="ca-meta-cell">Category: <strong>{category}</strong></div>
-                  <div class="ca-meta-cell">Signals: <strong>{len(control.get('evidence', []))}</strong></div>
-                  <div class="ca-meta-cell">Finding: <strong>{html.escape(str(control['status_summary']))}</strong></div>
-                </div>
-                <div class="ca-evidence">
-                  <div class="ca-ev-label">Supporting evidence</div>
-                  <div class="ca-ev-item ca-ev-primary" style="background:{tokens['primary_evidence_bg']}">
-                    <div class="ca-ev-dot" style="background:{tokens['accent_color']}"></div>
-                    <span>{primary_evidence}</span>
+            textwrap.dedent(
+                f"""
+                <details class="ca-card">
+                  <summary class="ca-hdr">
+                    <div class="ca-accent" style="background:{tokens['accent_color']}"></div>
+                    <div class="ca-hdr-main">
+                      <div class="ca-title">{html.escape(str(control['label']))}</div>
+                      <div class="ca-desc">{html.escape(str(control['description']))}</div>
+                    </div>
+                    <div class="ca-hdr-right">
+                      <span class="ca-pill" style="background:{tokens['pill_bg']}; color:{tokens['pill_text']}">
+                        {html.escape(str(control['status']))}
+                      </span>
+                      <span class="ca-score">{html.escape(str(control['average_score']))} / 5</span>
+                      <span class="ca-chevron" aria-hidden="true">⌄</span>
+                    </div>
+                  </summary>
+                  <div class="ca-body-wrap">
+                    <div class="ca-meta">
+                      <div class="ca-meta-cell">Category: <strong>{category}</strong></div>
+                      <div class="ca-meta-cell">Signals: <strong>{len(control.get('evidence', []))}</strong></div>
+                      <div class="ca-meta-cell">Finding: <strong>{html.escape(str(control['status_summary']))}</strong></div>
+                    </div>
+                    <div class="ca-evidence">
+                      <div class="ca-ev-label">Supporting evidence</div>
+                      <div class="ca-ev-item ca-ev-primary" style="background:{tokens['primary_evidence_bg']}">
+                        <div class="ca-ev-dot" style="background:{tokens['accent_color']}"></div>
+                        <span>{primary_evidence}</span>
+                      </div>
+                      {secondary_items_html}
+                    </div>
+                    <div class="ca-fw-grid">
+                      <div class="ca-fw-col">
+                        <div class="ca-fw-label">NIST AI RMF</div>
+                        <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('nist', [])))}</div>
+                      </div>
+                      <div class="ca-fw-col">
+                        <div class="ca-fw-label">ISO/IEC 42001</div>
+                        <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('iso', [])))}</div>
+                      </div>
+                      <div class="ca-fw-col">
+                        <div class="ca-fw-label">EU AI Act</div>
+                        <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('eu', [])))}</div>
+                      </div>
+                    </div>
                   </div>
-                  {secondary_items_html}
-                </div>
-                <div class="ca-fw-grid">
-                  <div class="ca-fw-col">
-                    <div class="ca-fw-label">NIST AI RMF</div>
-                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('nist', [])))}</div>
-                  </div>
-                  <div class="ca-fw-col">
-                    <div class="ca-fw-label">ISO/IEC 42001</div>
-                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('iso', [])))}</div>
-                  </div>
-                  <div class="ca-fw-col">
-                    <div class="ca-fw-label">EU AI Act</div>
-                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('eu', [])))}</div>
-                  </div>
-                </div>
-              </div>
-            </details>
-            """
+                </details>
+                """
+            ).strip()
         )
 
     section_html = textwrap.dedent(
@@ -1571,12 +1575,14 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
             item_bg = "#E6F1FB80" if item_kind == "primary" else "#F7F6F3"
             dot = "#185FA5" if item_kind == "primary" else "#D3D1C7"
             parts.append(
-                f"""
-                <div class="is-item {'is-item-primary' if item_kind == 'primary' else 'is-item-secondary'}" style="background:{item_bg}">
-                  <div class="is-dot" style="background:{dot}"></div>
-                  <span>{item}</span>
-                </div>
-                """
+                textwrap.dedent(
+                    f"""
+                    <div class="is-item {'is-item-primary' if item_kind == 'primary' else 'is-item-secondary'}" style="background:{item_bg}">
+                      <div class="is-dot" style="background:{dot}"></div>
+                      <span>{item}</span>
+                    </div>
+                    """
+                ).strip()
             )
         return "".join(parts)
 
@@ -1612,26 +1618,28 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
     cards_html = []
     for section in sections:
         cards_html.append(
-            f"""
-            <details class="is-card">
-              <summary class="is-hdr">
-                <div class="is-accent"></div>
-                <div class="is-hdr-main">
-                  <div class="is-title">{section['title']}</div>
-                  <div class="is-desc">{section['subtitle']}</div>
-                </div>
-                <div class="is-hdr-right">
-                  <span class="is-pill">{section['count']} items</span>
-                  <span class="is-chevron" aria-hidden="true">⌄</span>
-                </div>
-              </summary>
-              <div class="is-body-wrap">
-                <div class="is-body">
-                  {section['body']}
-                </div>
-              </div>
-            </details>
-            """
+            textwrap.dedent(
+                f"""
+                <details class="is-card">
+                  <summary class="is-hdr">
+                    <div class="is-accent"></div>
+                    <div class="is-hdr-main">
+                      <div class="is-title">{section['title']}</div>
+                      <div class="is-desc">{section['subtitle']}</div>
+                    </div>
+                    <div class="is-hdr-right">
+                      <span class="is-pill">{section['count']} items</span>
+                      <span class="is-chevron" aria-hidden="true">⌄</span>
+                    </div>
+                  </summary>
+                  <div class="is-body-wrap">
+                    <div class="is-body">
+                      {section['body']}
+                    </div>
+                  </div>
+                </details>
+                """
+            ).strip()
         )
 
     section_html = textwrap.dedent(
