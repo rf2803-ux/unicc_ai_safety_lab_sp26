@@ -1235,6 +1235,76 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
             """
         )
 
+    details_cards_html = []
+    for index, control in enumerate(controls):
+        tokens = _control_card_tokens(control)
+        category = html.escape(str((control.get("categories") or ["Unknown"])[0]))
+        evidence = [html.escape(str(item)) for item in control.get("evidence", [])]
+        primary_evidence = evidence[0] if evidence else "No supporting evidence was surfaced for this control."
+        secondary_evidence = evidence[1:]
+        framework = list(control.get("framework_alignment", []))
+        framework_item = framework[0] if framework else {"nist": [], "iso": [], "eu": []}
+
+        secondary_items_html = "".join(
+            f"""
+            <div class="ca-ev-item ca-ev-secondary">
+              <div class="ca-ev-dot" style="background:#D3D1C7"></div>
+              <span>{item}</span>
+            </div>
+            """
+            for item in secondary_evidence
+        )
+
+        details_cards_html.append(
+            f"""
+            <details class="ca-card">
+              <summary class="ca-hdr">
+                <div class="ca-accent" style="background:{tokens['accent_color']}"></div>
+                <div class="ca-hdr-main">
+                  <div class="ca-title">{html.escape(str(control['label']))}</div>
+                  <div class="ca-desc">{html.escape(str(control['description']))}</div>
+                </div>
+                <div class="ca-hdr-right">
+                  <span class="ca-pill" style="background:{tokens['pill_bg']}; color:{tokens['pill_text']}">
+                    {html.escape(str(control['status']))}
+                  </span>
+                  <span class="ca-score">{html.escape(str(control['average_score']))} / 5</span>
+                  <span class="ca-chevron" aria-hidden="true">⌄</span>
+                </div>
+              </summary>
+              <div class="ca-body-wrap">
+                <div class="ca-meta">
+                  <div class="ca-meta-cell">Category: <strong>{category}</strong></div>
+                  <div class="ca-meta-cell">Signals: <strong>{len(control.get('evidence', []))}</strong></div>
+                  <div class="ca-meta-cell">Finding: <strong>{html.escape(str(control['status_summary']))}</strong></div>
+                </div>
+                <div class="ca-evidence">
+                  <div class="ca-ev-label">Supporting evidence</div>
+                  <div class="ca-ev-item ca-ev-primary" style="background:{tokens['primary_evidence_bg']}">
+                    <div class="ca-ev-dot" style="background:{tokens['accent_color']}"></div>
+                    <span>{primary_evidence}</span>
+                  </div>
+                  {secondary_items_html}
+                </div>
+                <div class="ca-fw-grid">
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">NIST AI RMF</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('nist', [])))}</div>
+                  </div>
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">ISO/IEC 42001</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('iso', [])))}</div>
+                  </div>
+                  <div class="ca-fw-col">
+                    <div class="ca-fw-label">EU AI Act</div>
+                    <div class="ca-fw-val">{html.escape(', '.join(framework_item.get('eu', [])))}</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+            """
+        )
+
     section_html = f"""
     <div class="ca-root">
       <div class="ca-section-title">Control Assessment</div>
@@ -1243,11 +1313,10 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         They support structured assurance and remediation planning, but they are not a certification
         or legal compliance determination.
       </div>
-      {''.join(cards_html)}
+      {''.join(details_cards_html)}
     </div>
     <style>
       body {{
-        margin: 0;
         background: #FFFFFF;
         font-family: "Inter", "Segoe UI", sans-serif;
       }}
@@ -1276,6 +1345,12 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         overflow: hidden;
         margin-bottom: 12px;
         box-shadow: 0 1px 0 rgba(44, 44, 42, 0.02);
+      }}
+      .ca-card > summary {{
+        list-style: none;
+      }}
+      .ca-card > summary::-webkit-details-marker {{
+        display: none;
       }}
       .ca-hdr {{
         display: flex;
@@ -1338,13 +1413,11 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         transition: transform 0.2s ease;
         flex-shrink: 0;
         margin-left: 2px;
+        font-size: 18px;
+        line-height: 1;
       }}
-      .ca-chevron.open {{
+      .ca-card[open] .ca-chevron {{
         transform: rotate(180deg);
-      }}
-      .ca-body-wrap {{
-        overflow: hidden;
-        transition: max-height 0.25s ease;
       }}
       .ca-meta {{
         display: grid;
@@ -1457,56 +1530,8 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         }}
       }}
     </style>
-    <script>
-      function caResizeFrame() {{
-        const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-        if (window.frameElement) {{
-          window.frameElement.style.height = height + 'px';
-        }}
-      }}
-      function caScheduleResize() {{
-        caResizeFrame();
-        requestAnimationFrame(caResizeFrame);
-        setTimeout(caResizeFrame, 80);
-        setTimeout(caResizeFrame, 180);
-        setTimeout(caResizeFrame, 320);
-      }}
-      function caToggle(id) {{
-        const body = document.getElementById('body-' + id);
-        const chev = document.getElementById('chev-' + id);
-        const isOpen = chev.classList.contains('open');
-        if (isOpen) {{
-          body.style.maxHeight = body.scrollHeight + 'px';
-          requestAnimationFrame(() => {{
-            requestAnimationFrame(() => {{
-              body.style.maxHeight = '0px';
-              caScheduleResize();
-            }});
-          }});
-          chev.classList.remove('open');
-        }} else {{
-          body.style.maxHeight = body.scrollHeight + 'px';
-          chev.classList.add('open');
-          caScheduleResize();
-        }}
-      }}
-      document.addEventListener('DOMContentLoaded', () => {{
-        document.querySelectorAll('.ca-body-wrap').forEach(el => {{
-          el.style.maxHeight = '0px';
-        }});
-        document.querySelectorAll('.ca-chevron').forEach(el => {{
-          el.classList.remove('open');
-        }});
-        if (window.ResizeObserver) {{
-          const observer = new ResizeObserver(() => caScheduleResize());
-          observer.observe(document.body);
-        }}
-        setTimeout(caScheduleResize, 0);
-      }});
-    </script>
     """
-
-    components.html(section_html, height=_control_assessment_height(controls), scrolling=False)
+    st.html(section_html)
 
 
 def _render_input_preview(bundle: dict[str, Any]) -> None:
@@ -1588,8 +1613,8 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
     for section in sections:
         cards_html.append(
             f"""
-            <div class="is-card">
-              <div class="is-hdr" onclick="isToggle('{section['id']}')">
+            <details class="is-card">
+              <summary class="is-hdr">
                 <div class="is-accent"></div>
                 <div class="is-hdr-main">
                   <div class="is-title">{section['title']}</div>
@@ -1597,17 +1622,15 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
                 </div>
                 <div class="is-hdr-right">
                   <span class="is-pill">{section['count']} items</span>
-                  <svg class="is-chevron" id="is-chev-{section['id']}" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <span class="is-chevron" aria-hidden="true">⌄</span>
                 </div>
-              </div>
-              <div class="is-body-wrap" id="is-body-{section['id']}">
+              </summary>
+              <div class="is-body-wrap">
                 <div class="is-body">
                   {section['body']}
                 </div>
               </div>
-            </div>
+            </details>
             """
         )
 
@@ -1617,7 +1640,6 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
     </div>
     <style>
       body {{
-        margin: 0;
         background: #FFFFFF;
         font-family: "Inter", "Segoe UI", sans-serif;
       }}
@@ -1631,6 +1653,12 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 12px;
+      }}
+      .is-card > summary {{
+        list-style: none;
+      }}
+      .is-card > summary::-webkit-details-marker {{
+        display: none;
       }}
       .is-hdr {{
         display: flex;
@@ -1686,13 +1714,11 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
         color: #B4B2A9;
         transition: transform 0.2s ease;
         flex-shrink: 0;
+        font-size: 18px;
+        line-height: 1;
       }}
-      .is-chevron.open {{
+      .is-card[open] .is-chevron {{
         transform: rotate(180deg);
-      }}
-      .is-body-wrap {{
-        overflow: hidden;
-        transition: max-height 0.25s ease;
       }}
       .is-body {{
         padding: 0 18px 18px 18px;
@@ -1731,59 +1757,8 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
         flex-shrink: 0;
       }}
     </style>
-    <script>
-      function isResizeFrame() {{
-        const height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-        if (window.frameElement) {{
-          window.frameElement.style.height = height + 'px';
-        }}
-      }}
-      function isScheduleResize() {{
-        isResizeFrame();
-        requestAnimationFrame(isResizeFrame);
-        setTimeout(isResizeFrame, 80);
-        setTimeout(isResizeFrame, 180);
-        setTimeout(isResizeFrame, 320);
-      }}
-      function isToggle(id) {{
-        const body = document.getElementById('is-body-' + id);
-        const chev = document.getElementById('is-chev-' + id);
-        const isOpen = chev.classList.contains('open');
-        if (isOpen) {{
-          body.style.maxHeight = body.scrollHeight + 'px';
-          requestAnimationFrame(() => {{
-            requestAnimationFrame(() => {{
-              body.style.maxHeight = '0px';
-              isScheduleResize();
-            }});
-          }});
-          chev.classList.remove('open');
-        }} else {{
-          body.style.maxHeight = body.scrollHeight + 'px';
-          chev.classList.add('open');
-          isScheduleResize();
-        }}
-      }}
-      document.addEventListener('DOMContentLoaded', () => {{
-        document.querySelectorAll('.is-body-wrap').forEach(el => {{
-          el.style.maxHeight = '0px';
-        }});
-        document.querySelectorAll('.is-chevron').forEach(el => {{
-          el.classList.remove('open');
-        }});
-        if (window.ResizeObserver) {{
-          const observer = new ResizeObserver(() => isScheduleResize());
-          observer.observe(document.body);
-        }}
-        setTimeout(isScheduleResize, 0);
-      }});
-    </script>
     """
-    components.html(
-        section_html,
-        height=_intake_cards_height([section["count"] for section in sections]),
-        scrolling=False,
-    )
+    st.html(section_html)
 
 
 def _run_safety_evaluation(config, bundle: dict[str, Any] | None) -> None:
