@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -1305,229 +1306,231 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
             """
         )
 
-    section_html = f"""
-    <div class="ca-root">
-      <div class="ca-section-title">Control Assessment</div>
-      <div class="ca-section-desc">
-        These control summaries are derived from the evidence currently surfaced by the review workflow.
-        They support structured assurance and remediation planning, but they are not a certification
-        or legal compliance determination.
-      </div>
-      {''.join(details_cards_html)}
-    </div>
-    <style>
-      .ca-root {{
-        background: #FFFFFF;
-        padding: 0 0 8px 0;
-        font-family: "Inter", "Segoe UI", sans-serif;
-      }}
-      .ca-section-title {{
-        font-size: 22px;
-        font-weight: 600;
-        color: #2C2C2A;
-        margin-bottom: 6px;
-        letter-spacing: -0.01em;
-      }}
-      .ca-section-desc {{
-        font-size: 13px;
-        color: #888780;
-        line-height: 1.6;
-        max-width: 720px;
-        margin-bottom: 22px;
-      }}
-      .ca-card {{
-        background: #FFFFFF;
-        border: 0.5px solid #D3D1C7;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 0 rgba(44, 44, 42, 0.02);
-      }}
-      .ca-card > summary {{
-        list-style: none;
-      }}
-      .ca-card > summary::-webkit-details-marker {{
-        display: none;
-      }}
-      .ca-hdr {{
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 16px 18px;
-        cursor: pointer;
-        user-select: none;
-        background: #FFFFFF;
-        transition: background 0.15s;
-      }}
-      .ca-hdr:hover {{
-        background: #F7F6F3;
-      }}
-      .ca-accent {{
-        width: 3px;
-        height: 42px;
-        flex-shrink: 0;
-      }}
-      .ca-hdr-main {{
-        flex: 1;
-        min-width: 0;
-      }}
-      .ca-title {{
-        font-size: 15px;
-        font-weight: 600;
-        color: #2C2C2A;
-        line-height: 1.2;
-        letter-spacing: -0.01em;
-        margin-bottom: 4px;
-      }}
-      .ca-desc {{
-        font-size: 11.5px;
-        color: #888780;
-        line-height: 1.45;
-        max-width: 760px;
-      }}
-      .ca-hdr-right {{
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-shrink: 0;
-        padding-left: 8px;
-      }}
-      .ca-pill {{
-        font-size: 11px;
-        font-weight: 600;
-        padding: 5px 13px;
-        border-radius: 20px;
-        white-space: nowrap;
-      }}
-      .ca-score {{
-        font-size: 11px;
-        font-weight: 500;
-        color: #888780;
-        white-space: nowrap;
-      }}
-      .ca-chevron {{
-        color: #B4B2A9;
-        transition: transform 0.2s ease;
-        flex-shrink: 0;
-        margin-left: 2px;
-        font-size: 18px;
-        line-height: 1;
-      }}
-      .ca-card[open] .ca-chevron {{
-        transform: rotate(180deg);
-      }}
-      .ca-meta {{
-        display: grid;
-        grid-template-columns: 1.2fr 0.65fr 1.45fr;
-        border-top: 0.5px solid #E3E1DA;
-      }}
-      .ca-meta-cell {{
-        padding: 10px 16px;
-        font-size: 11px;
-        color: #888780;
-        border-right: 0.5px solid #E3E1DA;
-        background: #F7F6F3;
-        line-height: 1.35;
-      }}
-      .ca-meta-cell:last-child {{
-        border-right: none;
-      }}
-      .ca-meta-cell strong {{
-        color: #2C2C2A;
-        font-weight: 500;
-      }}
-      .ca-evidence {{
-        padding: 16px 18px;
-        background: #FFFFFF;
-      }}
-      .ca-ev-label {{
-        font-size: 10px;
-        font-weight: 600;
-        color: #888780;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-      }}
-      .ca-ev-item {{
-        display: flex;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        margin-bottom: 7px;
-        font-size: 12px;
-        line-height: 1.55;
-        color: #2C2C2A;
-      }}
-      .ca-ev-item:last-child {{
-        margin-bottom: 0;
-      }}
-      .ca-ev-secondary {{
-        background: #F7F6F3;
-      }}
-      .ca-ev-dot {{
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        margin-top: 6px;
-        flex-shrink: 0;
-      }}
-      .ca-fw-grid {{
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        border-top: 0.5px solid #E3E1DA;
-        background: #F7F6F3;
-      }}
-      .ca-fw-col {{
-        padding: 13px 16px;
-        border-right: 0.5px solid #E3E1DA;
-        font-size: 11px;
-      }}
-      .ca-fw-col:last-child {{
-        border-right: none;
-      }}
-      .ca-fw-label {{
-        font-size: 10px;
-        font-weight: 600;
-        color: #888780;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-      }}
-      .ca-fw-val {{
-        color: #5F5E5A;
-        line-height: 1.55;
-      }}
-      @media (max-width: 820px) {{
-        .ca-hdr {{
-          align-items: flex-start;
-        }}
-        .ca-hdr-right {{
-          gap: 8px;
-          padding-left: 0;
-        }}
-        .ca-meta {{
-          grid-template-columns: 1fr;
-        }}
-        .ca-meta-cell {{
-          border-right: none;
-          border-bottom: 0.5px solid #E3E1DA;
-        }}
-        .ca-meta-cell:last-child {{
-          border-bottom: none;
-        }}
-        .ca-fw-grid {{
-          grid-template-columns: 1fr;
-        }}
-        .ca-fw-col {{
-          border-right: none;
-          border-bottom: 0.5px solid #E3E1DA;
-        }}
-        .ca-fw-col:last-child {{
-          border-bottom: none;
-        }}
-      }}
-    </style>
-    """
+    section_html = textwrap.dedent(
+        f"""
+        <div class="ca-root">
+          <div class="ca-section-title">Control Assessment</div>
+          <div class="ca-section-desc">
+            These control summaries are derived from the evidence currently surfaced by the review workflow.
+            They support structured assurance and remediation planning, but they are not a certification
+            or legal compliance determination.
+          </div>
+          {''.join(details_cards_html)}
+        </div>
+        <style>
+          .ca-root {{
+            background: #FFFFFF;
+            padding: 0 0 8px 0;
+            font-family: "Inter", "Segoe UI", sans-serif;
+          }}
+          .ca-section-title {{
+            font-size: 22px;
+            font-weight: 600;
+            color: #2C2C2A;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+          }}
+          .ca-section-desc {{
+            font-size: 13px;
+            color: #888780;
+            line-height: 1.6;
+            max-width: 720px;
+            margin-bottom: 22px;
+          }}
+          .ca-card {{
+            background: #FFFFFF;
+            border: 0.5px solid #D3D1C7;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 0 rgba(44, 44, 42, 0.02);
+          }}
+          .ca-card > summary {{
+            list-style: none;
+          }}
+          .ca-card > summary::-webkit-details-marker {{
+            display: none;
+          }}
+          .ca-hdr {{
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            cursor: pointer;
+            user-select: none;
+            background: #FFFFFF;
+            transition: background 0.15s;
+          }}
+          .ca-hdr:hover {{
+            background: #F7F6F3;
+          }}
+          .ca-accent {{
+            width: 3px;
+            height: 42px;
+            flex-shrink: 0;
+          }}
+          .ca-hdr-main {{
+            flex: 1;
+            min-width: 0;
+          }}
+          .ca-title {{
+            font-size: 15px;
+            font-weight: 600;
+            color: #2C2C2A;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
+          }}
+          .ca-desc {{
+            font-size: 11.5px;
+            color: #888780;
+            line-height: 1.45;
+            max-width: 760px;
+          }}
+          .ca-hdr-right {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            padding-left: 8px;
+          }}
+          .ca-pill {{
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 13px;
+            border-radius: 20px;
+            white-space: nowrap;
+          }}
+          .ca-score {{
+            font-size: 11px;
+            font-weight: 500;
+            color: #888780;
+            white-space: nowrap;
+          }}
+          .ca-chevron {{
+            color: #B4B2A9;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            margin-left: 2px;
+            font-size: 18px;
+            line-height: 1;
+          }}
+          .ca-card[open] .ca-chevron {{
+            transform: rotate(180deg);
+          }}
+          .ca-meta {{
+            display: grid;
+            grid-template-columns: 1.2fr 0.65fr 1.45fr;
+            border-top: 0.5px solid #E3E1DA;
+          }}
+          .ca-meta-cell {{
+            padding: 10px 16px;
+            font-size: 11px;
+            color: #888780;
+            border-right: 0.5px solid #E3E1DA;
+            background: #F7F6F3;
+            line-height: 1.35;
+          }}
+          .ca-meta-cell:last-child {{
+            border-right: none;
+          }}
+          .ca-meta-cell strong {{
+            color: #2C2C2A;
+            font-weight: 500;
+          }}
+          .ca-evidence {{
+            padding: 16px 18px;
+            background: #FFFFFF;
+          }}
+          .ca-ev-label {{
+            font-size: 10px;
+            font-weight: 600;
+            color: #888780;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+          }}
+          .ca-ev-item {{
+            display: flex;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 7px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: #2C2C2A;
+          }}
+          .ca-ev-item:last-child {{
+            margin-bottom: 0;
+          }}
+          .ca-ev-secondary {{
+            background: #F7F6F3;
+          }}
+          .ca-ev-dot {{
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+          }}
+          .ca-fw-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-top: 0.5px solid #E3E1DA;
+            background: #F7F6F3;
+          }}
+          .ca-fw-col {{
+            padding: 13px 16px;
+            border-right: 0.5px solid #E3E1DA;
+            font-size: 11px;
+          }}
+          .ca-fw-col:last-child {{
+            border-right: none;
+          }}
+          .ca-fw-label {{
+            font-size: 10px;
+            font-weight: 600;
+            color: #888780;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+          }}
+          .ca-fw-val {{
+            color: #5F5E5A;
+            line-height: 1.55;
+          }}
+          @media (max-width: 820px) {{
+            .ca-hdr {{
+              align-items: flex-start;
+            }}
+            .ca-hdr-right {{
+              gap: 8px;
+              padding-left: 0;
+            }}
+            .ca-meta {{
+              grid-template-columns: 1fr;
+            }}
+            .ca-meta-cell {{
+              border-right: none;
+              border-bottom: 0.5px solid #E3E1DA;
+            }}
+            .ca-meta-cell:last-child {{
+              border-bottom: none;
+            }}
+            .ca-fw-grid {{
+              grid-template-columns: 1fr;
+            }}
+            .ca-fw-col {{
+              border-right: none;
+              border-bottom: 0.5px solid #E3E1DA;
+            }}
+            .ca-fw-col:last-child {{
+              border-bottom: none;
+            }}
+          }}
+        </style>
+        """
+    )
     st.markdown(section_html, unsafe_allow_html=True)
 
 
@@ -1631,127 +1634,129 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
             """
         )
 
-    section_html = f"""
-    <div class="is-root">
-      {''.join(cards_html)}
-    </div>
-    <style>
-      .is-root {{
-        background: #FFFFFF;
-        padding: 8px 0 0 0;
-        font-family: "Inter", "Segoe UI", sans-serif;
-      }}
-      .is-card {{
-        background: #FFFFFF;
-        border: 0.5px solid #D3D1C7;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 12px;
-      }}
-      .is-card > summary {{
-        list-style: none;
-      }}
-      .is-card > summary::-webkit-details-marker {{
-        display: none;
-      }}
-      .is-hdr {{
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 16px 18px;
-        cursor: pointer;
-        user-select: none;
-        background: #FFFFFF;
-      }}
-      .is-hdr:hover {{
-        background: #F7F6F3;
-      }}
-      .is-accent {{
-        width: 4px;
-        height: 40px;
-        flex-shrink: 0;
-        background: #185FA5;
-      }}
-      .is-hdr-main {{
-        flex: 1;
-        min-width: 0;
-      }}
-      .is-title {{
-        font-size: 15px;
-        font-weight: 600;
-        color: #2C2C2A;
-        line-height: 1.2;
-        margin-bottom: 4px;
-        letter-spacing: -0.01em;
-      }}
-      .is-desc {{
-        font-size: 11.5px;
-        color: #888780;
-        line-height: 1.45;
-      }}
-      .is-hdr-right {{
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-shrink: 0;
-      }}
-      .is-pill {{
-        font-size: 11px;
-        font-weight: 600;
-        padding: 5px 12px;
-        border-radius: 20px;
-        background: #E6F1FB;
-        color: #0C447C;
-        white-space: nowrap;
-      }}
-      .is-chevron {{
-        color: #B4B2A9;
-        transition: transform 0.2s ease;
-        flex-shrink: 0;
-        font-size: 18px;
-        line-height: 1;
-      }}
-      .is-card[open] .is-chevron {{
-        transform: rotate(180deg);
-      }}
-      .is-body {{
-        padding: 0 18px 18px 18px;
-        background: #FFFFFF;
-        border-top: 0.5px solid #E3E1DA;
-      }}
-      .is-block-label {{
-        font-size: 10px;
-        font-weight: 600;
-        color: #888780;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin: 14px 0 10px 0;
-      }}
-      .is-item {{
-        display: flex;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        margin-bottom: 7px;
-        font-size: 12px;
-        line-height: 1.55;
-        color: #2C2C2A;
-      }}
-      .is-item:last-child {{
-        margin-bottom: 0;
-      }}
-      .is-item-secondary, .is-empty {{
-        background: #F7F6F3;
-      }}
-      .is-dot {{
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        margin-top: 6px;
-        flex-shrink: 0;
-      }}
-    </style>
-    """
+    section_html = textwrap.dedent(
+        f"""
+        <div class="is-root">
+          {''.join(cards_html)}
+        </div>
+        <style>
+          .is-root {{
+            background: #FFFFFF;
+            padding: 8px 0 0 0;
+            font-family: "Inter", "Segoe UI", sans-serif;
+          }}
+          .is-card {{
+            background: #FFFFFF;
+            border: 0.5px solid #D3D1C7;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+          }}
+          .is-card > summary {{
+            list-style: none;
+          }}
+          .is-card > summary::-webkit-details-marker {{
+            display: none;
+          }}
+          .is-hdr {{
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            cursor: pointer;
+            user-select: none;
+            background: #FFFFFF;
+          }}
+          .is-hdr:hover {{
+            background: #F7F6F3;
+          }}
+          .is-accent {{
+            width: 4px;
+            height: 40px;
+            flex-shrink: 0;
+            background: #185FA5;
+          }}
+          .is-hdr-main {{
+            flex: 1;
+            min-width: 0;
+          }}
+          .is-title {{
+            font-size: 15px;
+            font-weight: 600;
+            color: #2C2C2A;
+            line-height: 1.2;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+          }}
+          .is-desc {{
+            font-size: 11.5px;
+            color: #888780;
+            line-height: 1.45;
+          }}
+          .is-hdr-right {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+          }}
+          .is-pill {{
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: #E6F1FB;
+            color: #0C447C;
+            white-space: nowrap;
+          }}
+          .is-chevron {{
+            color: #B4B2A9;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            font-size: 18px;
+            line-height: 1;
+          }}
+          .is-card[open] .is-chevron {{
+            transform: rotate(180deg);
+          }}
+          .is-body {{
+            padding: 0 18px 18px 18px;
+            background: #FFFFFF;
+            border-top: 0.5px solid #E3E1DA;
+          }}
+          .is-block-label {{
+            font-size: 10px;
+            font-weight: 600;
+            color: #888780;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin: 14px 0 10px 0;
+          }}
+          .is-item {{
+            display: flex;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 7px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: #2C2C2A;
+          }}
+          .is-item:last-child {{
+            margin-bottom: 0;
+          }}
+          .is-item-secondary, .is-empty {{
+            background: #F7F6F3;
+          }}
+          .is-dot {{
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+          }}
+        </style>
+        """
+    )
     st.markdown(section_html, unsafe_allow_html=True)
 
 
