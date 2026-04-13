@@ -1,47 +1,195 @@
-# unicc_ai_safety_lab_sp26
+# UNICC AI Safety Lab
 
-Courtroom-style AI Safety Lab for the UNICC Spring 2026 capstone.
+Courtroom-style AI safety assessment platform for structured review of AI systems, repositories, runtime endpoints, and generated system cases.
 
 ## Overview
 
-This project evaluates AI systems for safety, risk, and trustworthiness using a multi-expert review workflow:
+UNICC AI Safety Lab is a multi-expert evaluation system designed to assess AI applications for safety, trustworthiness, and deployment readiness. Instead of relying on a single model to produce one opaque verdict, the platform runs a structured expert panel:
 
-- Judge 1, Judge 2, and Judge 3 assess the same target from different expert lenses
-- The Ultimate Judge arbitrates across those three outputs and produces the final decision
-- Each run saves structured JSON artifacts and a PDF report under `runs/<timestamp>/`
+- `Judge 1` evaluates governance, privacy, auditability, and deployment-readiness concerns
+- `Judge 2` evaluates exploitability, attack surface, misuse potential, and technical failure modes
+- `Judge 3` evaluates user harm, fairness, transparency, trust, and stakeholder impact
+- the `Ultimate Judge` arbitrates across those three outputs to produce a final panel decision
 
-The app currently supports four input paths:
+Each run generates structured JSON artifacts and a presentation-ready PDF report under `runs/<timestamp>/`.
 
-- JSON case file upload
-- Public GitHub repository URL ingestion
-- App / endpoint runtime probing
-- Internal chat-based case generation
+## Why This Architecture
 
-## What The Evaluator Can Do
+The system is designed around three core ideas:
 
-From the Streamlit app, a first-time user can:
+- `Structured disagreement`: differences between expert reviewers are treated as meaningful safety signals, not noise
+- `Traceable evidence`: every run preserves intake artifacts, reviewer outputs, arbitration results, and reporting artifacts
+- `Framework alignment`: findings are surfaced through risk categories, control assessments, and governance mappings aligned to public frameworks
 
-1. Open the `Instructions` tab for onboarding
-2. Evaluate a JSON case file
-3. Evaluate a public GitHub repository by pasting its URL
-4. Evaluate a live app or endpoint URL with safe runtime probes
-5. Generate a demo case inside the app
-6. Run the expert panel and download a PDF report
+This makes the platform useful not only for producing a verdict, but for supporting review, remediation planning, and governance conversations.
 
-## Setup
+## Core Workflow
 
-### Recommended install order
+Every input path is normalized into a shared internal `SystemCase`. That `SystemCase` is then passed through the same evaluation pipeline:
 
-Use the first option that works in the evaluation environment:
+1. intake and evidence preparation
+2. normalization into `SystemCase`
+3. expert review by three judges
+4. arbitration by the `Ultimate Judge`
+5. report generation and artifact export
 
-1. Preferred: `uv sync --extra dev`
-2. Compatibility fallback: `pip install -r requirements.txt`
-3. Optional containerized fallback: Docker
+This common pipeline makes outputs comparable across different input types.
+
+## Supported Input Modes
+
+The app currently supports four intake paths:
+
+- `Upload JSON`
+  - evaluate a structured case file directly
+
+- `GitHub URL`
+  - ingest a public repository, inspect prioritized files, and derive a system case from evidence found in code and configuration
+
+- `App / Endpoint URL`
+  - probe a live target using safe, limited text-based runtime checks and convert observations into a system case
+
+- `Internal Chat Generator`
+  - generate a demo system case inside the application for scenario-based evaluation
+
+## GitHub Repository Ingestion
+
+When a public GitHub repository URL is provided, the system:
+
+1. fetches the repository locally
+2. inspects prioritized files such as `README.md`, `requirements.txt`, `.env.example`, entrypoints, and relevant application files
+3. extracts structured evidence such as:
+   - framework or application type
+   - model/backend usage
+   - upload or file-processing surfaces
+   - authentication and security signals
+   - dependency and setup signals
+   - reporting or output behavior
+4. converts those findings into a `SystemCase`
+5. runs the same expert evaluation pipeline used for all other input types
+
+This ingestion path is deterministic and evidence-driven. It does not depend on an LLM to decide which files to inspect.
+
+## Runtime Endpoint Probing
+
+The `App / Endpoint URL` mode supports limited behavioral evaluation of live targets.
+
+Current runtime support is intentionally scoped to:
+
+- `JSON API` endpoints
+- `simple public HTML forms`
+
+The runtime probe flow:
+
+1. loads the target URL
+2. detects or uses the selected runtime mode
+3. submits a small set of safe, text-only probes
+4. records request/response observations
+5. converts those observations into a `SystemCase`
+6. runs the standard expert evaluation pipeline
+
+### Current Runtime Limitations
+
+The current runtime mode does not attempt to support:
+
+- authenticated flows
+- JavaScript-heavy web applications
+- browser automation
+- file uploads
+- multi-step workflows
+- complex agent UIs such as ChatGPT-style hosted interfaces
+
+For unsupported targets, repository-based or JSON-based evaluation is the recommended path.
+
+## Risk Model And Framework Alignment
+
+The platform uses a courtroom-style review workflow supported by a structured risk rubric. Findings are organized into safety and trustworthiness categories such as:
+
+- privacy
+- harmful content
+- security
+- bias / fairness
+- deception
+- prompt injection
+- transparency
+- auditability
+
+These category-level findings feed into a lightweight control assessment layer that groups risks into operational controls such as:
+
+- governance and accountability
+- logging and traceability
+- transparency and user disclosure
+- human oversight
+- privacy safeguards
+- misuse resilience
+
+The resulting outputs are aligned to selected themes from:
+
+- `NIST AI RMF`
+- `ISO/IEC 42001`
+- `EU AI Act`
+
+This should be understood as a framework-aligned assessment workflow, not as a certification or legal compliance determination.
+
+See also:
+
+- [`docs/framework_crosswalk.md`](docs/framework_crosswalk.md)
+- [`docs/control_library.md`](docs/control_library.md)
+
+## Outputs And Traceability
+
+Each run creates a timestamped folder in `runs/` containing the full artifact trail for that evaluation.
+
+Typical outputs include:
+
+- `system_case.json`
+- `judge1.json`
+- `judge2.json`
+- `judge3.json`
+- `final_judge.json`
+- `execution_trace.json`
+- `run_summary.json`
+- `report.pdf`
+
+Depending on the input mode, the run may also include intake artifacts such as:
+
+- `intake_summary.json`
+- `intake_logs.json`
+- `repo_extraction.json`
+- `runtime_probe_config.json`
+- `runtime_probe_result.json`
+
+This gives each evaluation a practical audit trail from intake through final report generation.
+
+## Verdict Mapping
+
+The application uses courtroom-style internal verdict labels:
+
+- `SAFE`
+- `NEEDS_REVIEW`
+- `UNSAFE`
+
+These are functionally equivalent to:
+
+- `APPROVE`
+- `REVIEW`
+- `REJECT`
+
+The internal labels are preserved because they align with the project’s multi-reviewer decision model while remaining easy to interpret in reporting.
+
+## Installation
+
+### Recommended Install Order
+
+Use the first option that works in your environment:
+
+1. `uv sync --extra dev`
+2. `pip install -r requirements.txt`
+3. Docker
 
 ### Requirements
 
 - Python `3.11+`
-- `uv`
+- `uv` recommended
 
 Install `uv` if needed:
 
@@ -55,32 +203,28 @@ Preferred install path:
 uv sync --extra dev
 ```
 
-Compatibility fallback for tools that expect `requirements.txt`:
+Compatibility fallback:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Optional Docker fallback:
+Optional Docker path:
 
 ```bash
 docker build -t ai-safety-lab .
 docker run --env-file .env -p 8501:8501 ai-safety-lab
 ```
 
-Create a local `.env` file or export the variables directly in your shell:
+## Configuration
+
+Create a local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Set these required API keys:
-
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `GEMINI_API_KEY`
-
-You can set them in `.env`:
+Set the required API keys:
 
 ```env
 OPENAI_API_KEY=
@@ -88,57 +232,21 @@ ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
 ```
 
-Or export them in the shell before you run the app:
+Important notes:
 
-```bash
-export OPENAI_API_KEY=your_key_here
-export ANTHROPIC_API_KEY=your_key_here
-export GEMINI_API_KEY=your_key_here
-```
-
-Important:
-
-- Never commit `.env`
-- Never paste real keys into GitHub, screenshots, slides, or shared docs
-- Each teammate should create their own local `.env`
-- The evaluator may supply their own keys through environment variables instead of a local `.env` file
-
-### Clean-machine quick start
-
-If `uv` is available, use this exact path:
-
-```bash
-uv sync --extra dev
-cp .env.example .env
-# add OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
-uv run streamlit run src/ui/app.py
-```
-
-If `uv` is unavailable, use:
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
-# add OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
-streamlit run src/ui/app.py
-```
-
-If local Python setup is unreliable, use Docker:
-
-```bash
-docker build -t ai-safety-lab .
-docker run --env-file .env -p 8501:8501 ai-safety-lab
-```
+- never commit `.env`
+- never paste real keys into shared docs, screenshots, or slides
+- each teammate should maintain their own local `.env`
 
 ## Run The App
 
-### With `uv`
+With `uv`:
 
 ```bash
 uv run streamlit run src/ui/app.py
 ```
 
-### With `pip`
+With `pip`:
 
 ```bash
 streamlit run src/ui/app.py
@@ -146,11 +254,9 @@ streamlit run src/ui/app.py
 
 Then open the local Streamlit URL shown in the terminal.
 
-## Run Tests
+## Testing
 
-The repository already includes an automated test suite under [`tests/`](tests).
-
-Preferred:
+Run the full test suite with:
 
 ```bash
 uv run pytest
@@ -162,228 +268,25 @@ Fallback:
 pytest
 ```
 
-## Optional Docker Run
+## Project Structure
 
-If you prefer a containerized path, or if the evaluation machine does not have `uv`, you can run the app with Docker.
-
-Build the image:
-
-```bash
-docker build -t ai-safety-lab .
-```
-
-Run the container with your API keys:
-
-```bash
-docker run --env-file .env -p 8501:8501 ai-safety-lab
-```
-
-Then open:
-
-```text
-http://localhost:8501
-```
-
-If you are running on a remote machine, replace `localhost` with the machine IP or forwarded host.
-
-## Troubleshooting
-
-If the evaluation environment cannot find `uv`:
-
-```bash
-pip install -r requirements.txt
-streamlit run src/ui/app.py
-```
-
-If the evaluation environment has trouble with local Python setup, use Docker:
-
-```bash
-docker build -t ai-safety-lab .
-docker run --env-file .env -p 8501:8501 ai-safety-lab
-```
-
-If an API key is missing, set one or more of these environment variables before running the app:
-
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `GEMINI_API_KEY`
-
-If a run fails, inspect the generated artifacts in `runs/<timestamp>/`. In addition to the judge outputs and PDF report, each run now includes:
-
-- `execution_trace.json`
-- `run_summary.json`
-
-These files show which stage ran, which provider/model was used, and which stage failed if the pipeline stopped early.
-
-## Recommended Evaluator Flow
-
-The app opens with five tabs:
-
-1. `Instructions`
-2. `Upload JSON`
-3. `GitHub URL`
-4. `App / Endpoint URL`
-5. `Internal Chat Generator`
-
-For repository-based evaluation, the simplest path is:
-
-1. Open `GitHub URL`
-2. Paste a public GitHub repository URL
-3. Click `Load Repository Preview`
-4. Review the intake summary and evidence preview
-5. Click `Run Safety Evaluation`
-
-For JSON-based evaluation:
-
-1. Open `Upload JSON`
-2. Upload a `case_file.json`
-3. Click `Run Safety Evaluation`
-
-For generated demo evaluation:
-
-1. Open `Internal Chat Generator`
-2. Select a scenario
-3. Click `Run Safety Evaluation`
-
-For runtime app or endpoint evaluation:
-
-1. Open `App / Endpoint URL`
-2. Enter a runtime URL
-3. Select `Auto-detect`, `JSON API`, or `Simple Web App`
-4. Provide the prompt field name if you are probing a JSON API
-5. Click `Load Runtime Preview`
-6. Review the intake summary and runtime logs
-7. Click `Run Safety Evaluation`
-
-## GitHub Repository Ingestion
-
-When a public GitHub repository URL is provided, the app:
-
-1. fetches the repository locally
-2. inspects prioritized files such as `README.md`, `requirements.txt`, `.env.example`, and app entrypoints
-3. extracts structured evidence such as:
-   - framework/app type
-   - model/backend usage
-   - upload or file-processing surfaces
-   - auth/security signals
-   - dependency/setup signals
-   - reporting/output behavior
-4. converts those findings into a `SystemCase`
-5. sends that `SystemCase` through the same expert evaluation pipeline
-
-This repository ingestion is deterministic and evidence-driven. It does not depend on an LLM to decide which files to inspect.
-
-## App / Endpoint Runtime Probing
-
-The app also supports runtime evaluation of live targets through the `App / Endpoint URL` tab.
-
-Current runtime support is intentionally scoped to:
-
-- JSON API endpoints
-- simple public HTML forms
-
-The runtime probe flow:
-
-1. loads the target URL
-2. auto-detects or uses the selected runtime mode
-3. sends a small set of safe, text-only probes
-4. captures request/response observations
-5. converts those observations into a `SystemCase`
-6. sends that case through the same expert evaluation pipeline
-
-### Current runtime limitations
-
-The current runtime mode does **not** attempt to support:
-
-- login or authenticated flows
-- JavaScript-heavy apps
-- browser automation
-- file uploads
-- multi-step workflows
-
-If a runtime target falls outside those constraints, the app should surface that limitation in preview or error handling rather than crashing.
-
-## Verdict Mapping
-
-This project uses the following verdict labels in the UI and JSON outputs:
-
-- `SAFE` = functionally equivalent to `APPROVE`
-- `NEEDS_REVIEW` = functionally equivalent to `REVIEW`
-- `UNSAFE` = functionally equivalent to `REJECT`
-
-We keep `SAFE / NEEDS_REVIEW / UNSAFE` as the internal courtroom-style decision labels, but they map directly to the evaluation rubric’s approval categories.
-
-## Framework Alignment
-
-The app uses the **UNICC Review Framework**, an internal multi-expert safety review workflow that is:
-
-- aligned to principles from `NIST AI RMF`
-- supportive of assessment against selected governance, documentation, traceability, robustness, and oversight themes reflected in `ISO/IEC 42001`
-- supportive of assessment against selected risk-management, transparency, logging, human-oversight, and robustness themes reflected in the `EU AI Act`
-
-This should be understood as a framework-aligned assessment workflow, not as a certification or legal compliance determination.
-
-See the formal crosswalk in [`docs/framework_crosswalk.md`](docs/framework_crosswalk.md).
-
-## Control Assessment Layer
-
-The current results and PDF outputs also include a lightweight **control assessment** layer. This layer:
-
-- groups category-level findings into operational controls such as logging, transparency, oversight, privacy safeguards, and misuse resilience
-- shows whether each control currently appears to need attention, needs manual review, or is better supported by the available evidence
-- ties each control back to the underlying categories and framework themes used in the review
-
-This layer is intended to support structured remediation planning and clearer assurance discussions. It should still be read as assessment support rather than certification or legal compliance evidence.
-
-See the control model in [`docs/control_library.md`](docs/control_library.md).
-
-## Run Artifacts
-
-Each evaluation run creates a timestamped folder in `runs/`.
-
-Typical artifacts include:
-
-- `system_case.json`
-- `run_metadata.json`
-- `judge1.json`
-- `judge2.json`
-- `judge3.json`
-- `final_judge.json`
-- `report.pdf`
-
-For enriched inputs such as GitHub repository analysis, the run may also include intake artifacts such as:
-
-- `intake_summary.json`
-- `intake_logs.json`
-- `repo_extraction.json`
-- `runtime_probe_config.json`
-- `runtime_probe_result.json`
-- `legacy_case_file.json` for compatibility flows
-
-## Testing
-
-Run the full test suite with:
-
-```bash
-uv run pytest
-```
-
-## Key Paths
+Key paths:
 
 - Streamlit app: `src/ui/app.py`
-- Pipeline: `src/pipeline.py`
-- Core pipeline implementation: `src/ai_safety_lab/pipeline.py`
-- System schema: `src/ai_safety_lab/schemas/system_case.py`
-- GitHub ingestion: `src/ai_safety_lab/ingestion/`
+- Core pipeline: `src/ai_safety_lab/pipeline.py`
+- Compatibility wrapper: `src/pipeline.py`
+- GitHub and runtime ingestion: `src/ai_safety_lab/ingestion/`
 - Judges: `src/ai_safety_lab/judges/`
 - Ultimate judge: `src/ai_safety_lab/final_judge/ultimate_judge.py`
-- PDF reporting: `src/ai_safety_lab/reporting/make_report_pdf.py`
+- Reporting and PDF generation: `src/ai_safety_lab/reporting/`
+- Schemas: `src/ai_safety_lab/schemas/`
 - Example cases: `examples/cases/`
 
 ## Notes
 
-- `config/config.example.yaml` contains model/backend defaults for the MVP
-- `.env.example` is committed; `.env` stays local only
-- `runs/` is generated output and is mostly ignored by Git
-- Public GitHub repositories are supported in the current ingestion flow
-- Runtime evaluation is currently limited to JSON APIs and simple public HTML forms
+- `config/config.example.yaml` defines the default provider/model configuration
+- optional local overrides can be placed in `config/config.local.yaml`
+- `.env.example` is committed; `.env` remains local
+- `runs/` contains generated outputs and is mostly ignored by Git
+- public GitHub repositories are supported in the current ingestion flow
+- runtime evaluation is intentionally limited to JSON APIs and simple public HTML forms
