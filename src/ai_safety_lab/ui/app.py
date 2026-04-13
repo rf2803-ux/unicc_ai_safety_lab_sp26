@@ -1464,6 +1464,13 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
           window.frameElement.style.height = height + 'px';
         }}
       }}
+      function caScheduleResize() {{
+        caResizeFrame();
+        requestAnimationFrame(caResizeFrame);
+        setTimeout(caResizeFrame, 80);
+        setTimeout(caResizeFrame, 180);
+        setTimeout(caResizeFrame, 320);
+      }}
       function caToggle(id) {{
         const body = document.getElementById('body-' + id);
         const chev = document.getElementById('chev-' + id);
@@ -1473,17 +1480,14 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
           requestAnimationFrame(() => {{
             requestAnimationFrame(() => {{
               body.style.maxHeight = '0px';
-              setTimeout(caResizeFrame, 270);
+              caScheduleResize();
             }});
           }});
           chev.classList.remove('open');
         }} else {{
           body.style.maxHeight = body.scrollHeight + 'px';
           chev.classList.add('open');
-          setTimeout(() => {{
-            body.style.maxHeight = 'none';
-            caResizeFrame();
-          }}, 260);
+          caScheduleResize();
         }}
       }}
       document.addEventListener('DOMContentLoaded', () => {{
@@ -1493,7 +1497,11 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
         document.querySelectorAll('.ca-chevron').forEach(el => {{
           el.classList.remove('open');
         }});
-        setTimeout(caResizeFrame, 0);
+        if (window.ResizeObserver) {{
+          const observer = new ResizeObserver(() => caScheduleResize());
+          observer.observe(document.body);
+        }}
+        setTimeout(caScheduleResize, 0);
       }});
     </script>
     """
@@ -1730,6 +1738,13 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
           window.frameElement.style.height = height + 'px';
         }}
       }}
+      function isScheduleResize() {{
+        isResizeFrame();
+        requestAnimationFrame(isResizeFrame);
+        setTimeout(isResizeFrame, 80);
+        setTimeout(isResizeFrame, 180);
+        setTimeout(isResizeFrame, 320);
+      }}
       function isToggle(id) {{
         const body = document.getElementById('is-body-' + id);
         const chev = document.getElementById('is-chev-' + id);
@@ -1739,17 +1754,14 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
           requestAnimationFrame(() => {{
             requestAnimationFrame(() => {{
               body.style.maxHeight = '0px';
-              setTimeout(isResizeFrame, 270);
+              isScheduleResize();
             }});
           }});
           chev.classList.remove('open');
         }} else {{
           body.style.maxHeight = body.scrollHeight + 'px';
           chev.classList.add('open');
-          setTimeout(() => {{
-            body.style.maxHeight = 'none';
-            isResizeFrame();
-          }}, 260);
+          isScheduleResize();
         }}
       }}
       document.addEventListener('DOMContentLoaded', () => {{
@@ -1759,7 +1771,11 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
         document.querySelectorAll('.is-chevron').forEach(el => {{
           el.classList.remove('open');
         }});
-        setTimeout(isResizeFrame, 0);
+        if (window.ResizeObserver) {{
+          const observer = new ResizeObserver(() => isScheduleResize());
+          observer.observe(document.body);
+        }}
+        setTimeout(isScheduleResize, 0);
       }});
     </script>
     """
