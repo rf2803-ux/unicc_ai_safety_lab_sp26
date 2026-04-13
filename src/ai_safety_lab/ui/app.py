@@ -1316,13 +1316,10 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
       {''.join(details_cards_html)}
     </div>
     <style>
-      body {{
-        background: #FFFFFF;
-        font-family: "Inter", "Segoe UI", sans-serif;
-      }}
       .ca-root {{
         background: #FFFFFF;
         padding: 0 0 8px 0;
+        font-family: "Inter", "Segoe UI", sans-serif;
       }}
       .ca-section-title {{
         font-size: 22px;
@@ -1531,7 +1528,7 @@ def _render_control_assessment(view: dict[str, Any]) -> None:
       }}
     </style>
     """
-    st.html(section_html)
+    st.markdown(section_html, unsafe_allow_html=True)
 
 
 def _render_input_preview(bundle: dict[str, Any]) -> None:
@@ -1639,13 +1636,10 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
       {''.join(cards_html)}
     </div>
     <style>
-      body {{
-        background: #FFFFFF;
-        font-family: "Inter", "Segoe UI", sans-serif;
-      }}
       .is-root {{
         background: #FFFFFF;
         padding: 8px 0 0 0;
+        font-family: "Inter", "Segoe UI", sans-serif;
       }}
       .is-card {{
         background: #FFFFFF;
@@ -1758,7 +1752,7 @@ def _render_input_preview(bundle: dict[str, Any]) -> None:
       }}
     </style>
     """
-    st.html(section_html)
+    st.markdown(section_html, unsafe_allow_html=True)
 
 
 def _run_safety_evaluation(config, bundle: dict[str, Any] | None) -> None:
