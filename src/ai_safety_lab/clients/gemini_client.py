@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import os
 
-from .base import BaseLLMClient, MissingAPIKeyError
+from .base import BaseLLMClient, MissingAPIKeyError, ProviderResponseError
+
+
+_GEMINI_TIMEOUT_SECONDS = 45
+_GEMINI_RETRY_ATTEMPTS = 2
 
 
 class GeminiClient(BaseLLMClient):
@@ -12,12 +16,42 @@ class GeminiClient(BaseLLMClient):
             raise MissingAPIKeyError(
                 "GEMINI_API_KEY is missing. Set it as an environment variable or in your local .env file."
             )
-        import google.generativeai as genai
+        from google import genai
+        from google.genai import errors, types
 
-        self._genai = genai
-        genai.configure(api_key=self.api_key)
-        self.client = genai.GenerativeModel(self.model)
+        self._errors = errors
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options=types.HttpOptions(
+                timeout=_GEMINI_TIMEOUT_SECONDS,
+                retry_options=types.HttpRetryOptions(
+                    attempts=_GEMINI_RETRY_ATTEMPTS,
+                    initial_delay=1.0,
+                    max_delay=4.0,
+                    exp_base=2.0,
+                    jitter=0.25,
+                    http_status_codes=[429, 500, 502, 503, 504],
+                ),
+            ),
+        )
 
     def generate_text(self, system_prompt: str, user_prompt: str) -> str:
-        response = self.client.generate_content([system_prompt, user_prompt])
-        return response.text
+        from google.genai import types
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                ),
+            )
+        except self._errors.APIError as exc:
+            raise ProviderResponseError(f"Gemini request failed: {exc}") from exc
+        except Exception as exc:
+            raise ProviderResponseError(f"Gemini request failed: {exc}") from exc
+
+        text = (response.text or "").strip()
+        if not text:
+            raise ProviderResponseError("Gemini returned an empty response.")
+        return text
