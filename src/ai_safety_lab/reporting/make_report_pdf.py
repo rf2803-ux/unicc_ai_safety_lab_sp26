@@ -8,7 +8,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from ai_safety_lab.reporting.presentation import (
     CATEGORY_LABELS,
@@ -55,6 +55,12 @@ CONTROL_STATUS_COLORS = {
     "Better supported": TEAL,
 }
 
+CONTROL_STATUS_BACKGROUNDS = {
+    "Needs attention": BG_LIGHT_GOLD,
+    "Review needed": colors.HexColor("#EAF4FD"),
+    "Better supported": colors.HexColor("#EAF7EF"),
+}
+
 
 def _html_color(color: colors.Color) -> str:
     return f"#{int(color.red * 255):02X}{int(color.green * 255):02X}{int(color.blue * 255):02X}"
@@ -83,16 +89,16 @@ def _styles() -> dict[str, ParagraphStyle]:
             "eyebrow",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=10,
+            fontSize=8,
             textColor=TEXT_MUTED,
-            leading=12,
+            leading=10,
         ),
         "title": ParagraphStyle(
             "title",
             parent=base["Title"],
             fontName="Helvetica-Bold",
-            fontSize=30,
-            leading=34,
+            fontSize=22,
+            leading=28,
             textColor=TEXT_DARK,
             spaceAfter=6,
         ),
@@ -100,8 +106,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             "section",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=17,
-            leading=21,
+            fontSize=13,
+            leading=18,
             textColor=TEXT_DARK,
             spaceAfter=8,
         ),
@@ -109,7 +115,7 @@ def _styles() -> dict[str, ParagraphStyle]:
             "small_label",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=8,
+            fontSize=7,
             leading=10,
             textColor=TEXT_MUTED,
             uppercase=True,
@@ -118,8 +124,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             "body",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=11,
-            leading=15,
+            fontSize=9,
+            leading=13,
             textColor=TEXT_DARK,
             alignment=TA_LEFT,
         ),
@@ -127,95 +133,159 @@ def _styles() -> dict[str, ParagraphStyle]:
             "body_small",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=9,
-            leading=12,
+            fontSize=8,
+            leading=11,
             textColor=TEXT_DARK,
         ),
         "body_muted": ParagraphStyle(
             "body_muted",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=10,
+            fontSize=8,
+            leading=11,
+            textColor=TEXT_MUTED,
+        ),
+        "body_muted_dark": ParagraphStyle(
+            "body_muted_dark",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=9,
             leading=13,
+            textColor=TEXT_DARK,
+        ),
+        "reviewer_name": ParagraphStyle(
+            "reviewer_name",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=12,
+            leading=16,
+            textColor=TEXT_DARK,
+        ),
+        "subhead": ParagraphStyle(
+            "subhead",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            leading=14,
+            textColor=TEXT_MUTED,
+        ),
+        "mono": ParagraphStyle(
+            "mono",
+            parent=base["Normal"],
+            fontName="Courier",
+            fontSize=7,
+            leading=10,
             textColor=TEXT_MUTED,
         ),
         "metric": ParagraphStyle(
             "metric",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=24,
-            leading=27,
+            fontSize=18,
+            leading=22,
             textColor=TEXT_DARK,
         ),
         "metric_red": ParagraphStyle(
             "metric_red",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=24,
-            leading=27,
+            fontSize=18,
+            leading=22,
             textColor=RED,
         ),
         "metric_gold": ParagraphStyle(
             "metric_gold",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=24,
-            leading=27,
+            fontSize=18,
+            leading=22,
             textColor=GOLD,
         ),
         "metric_blue": ParagraphStyle(
             "metric_blue",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=24,
-            leading=27,
+            fontSize=18,
+            leading=22,
             textColor=BLUE,
+        ),
+        "metric_teal": ParagraphStyle(
+            "metric_teal",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=22,
+            textColor=TEAL,
         ),
         "metric_compact": ParagraphStyle(
             "metric_compact",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=20,
-            leading=23,
+            fontSize=18,
+            leading=22,
             textColor=TEXT_DARK,
         ),
         "metric_compact_red": ParagraphStyle(
             "metric_compact_red",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=20,
-            leading=23,
+            fontSize=18,
+            leading=22,
             textColor=RED,
         ),
         "metric_compact_gold": ParagraphStyle(
             "metric_compact_gold",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=20,
-            leading=23,
+            fontSize=18,
+            leading=22,
             textColor=GOLD,
         ),
         "metric_compact_blue": ParagraphStyle(
             "metric_compact_blue",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=20,
-            leading=23,
+            fontSize=18,
+            leading=22,
             textColor=BLUE,
+        ),
+        "risk_level_red": ParagraphStyle(
+            "risk_level_red",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=17,
+            textColor=RED,
+        ),
+        "risk_level_gold": ParagraphStyle(
+            "risk_level_gold",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=17,
+            textColor=GOLD,
+        ),
+        "risk_level_teal": ParagraphStyle(
+            "risk_level_teal",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=17,
+            textColor=TEAL,
         ),
         "recommendation_metric": ParagraphStyle(
             "recommendation_metric",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=15,
-            leading=18,
+            fontSize=10,
+            leading=14,
             textColor=RED,
         ),
         "badge_title": ParagraphStyle(
             "badge_title",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=14,
+            fontSize=11,
             leading=16,
             textColor=colors.white,
         ),
@@ -223,8 +293,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             "badge_body",
             parent=base["Normal"],
             fontName="Helvetica",
-            fontSize=12,
-            leading=14,
+            fontSize=9,
+            leading=12,
             textColor=colors.white,
         ),
     }
@@ -306,6 +376,18 @@ def _table(data: list[list[object]], widths: list[float], style_commands: list[t
     table = Table(data, colWidths=widths, hAlign="LEFT")
     table.setStyle(TableStyle(style_commands))
     return table
+
+
+def _risk_level_style(value: str, styles: dict[str, ParagraphStyle]) -> ParagraphStyle:
+    mapping = {
+        "High": "risk_level_red",
+        "Medium": "risk_level_gold",
+        "Low": "risk_level_teal",
+        "Safe": "risk_level_teal",
+        "Needs Review": "risk_level_gold",
+        "Unsafe": "risk_level_red",
+    }
+    return styles.get(mapping.get(value, "risk_level_gold"), styles["risk_level_gold"])
 
 
 def _cover_header(story: list[object], styles: dict[str, ParagraphStyle], final_view: dict[str, object]) -> None:
@@ -421,7 +503,7 @@ def _final_assessment_block(
     story.append(Spacer(1, 8))
     story.append(
         _table(
-            [[_p("Recommendation", styles["body_muted"]), _p(str(final_view["recommendation"]), styles["recommendation_metric"])]],
+            [[_p("Recommendation", styles["small_label"]), _p(str(final_view["recommendation"]), styles["recommendation_metric"])]],
             [45.5 * mm, 136.5 * mm],
             [
                 ("BACKGROUND", (0, 0), (-1, -1), BG_LIGHT_RED),
@@ -430,6 +512,29 @@ def _final_assessment_block(
                 ("RIGHTPADDING", (0, 0), (-1, -1), 12),
                 ("TOPPADDING", (0, 0), (-1, -1), 10),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ],
+        )
+    )
+    story.append(Spacer(1, 6))
+    story.append(
+        _table(
+            [[
+                _p("Color guide", styles["small_label"]),
+                _p(f"<font color='{_html_color(RED)}'>■</font> Unsafe / High risk", styles["body_muted"]),
+                _p(f"<font color='{_html_color(GOLD)}'>■</font> Needs review / Medium", styles["body_muted"]),
+                _p(f"<font color='{_html_color(TEAL)}'>■</font> Safe / Low risk", styles["body_muted"]),
+                _p(f"<font color='{_html_color(BLUE)}'>■</font> Informational", styles["body_muted"]),
+            ]],
+            [22 * mm, 40 * mm, 44 * mm, 34 * mm, 42 * mm],
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), BG_SOFT),
+                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+                ("LINEAFTER", (0, 0), (0, 0), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ],
         )
     )
@@ -445,7 +550,17 @@ def _top_risks_block(story: list[object], styles: dict[str, ParagraphStyle], jud
                 [
                     [
                         "",
-                        _p(f"<b>{label}</b>", ParagraphStyle("risk_label", parent=styles["body"], textColor=row_color)),
+                        _p(
+                            f"<b>{label}</b>",
+                            ParagraphStyle(
+                                "risk_label",
+                                parent=styles["body_small"],
+                                fontName="Helvetica-Bold",
+                                fontSize=8,
+                                leading=11,
+                                textColor=row_color,
+                            ),
+                        ),
                         _p(rationale, styles["body"]),
                     ]
                 ],
@@ -571,39 +686,98 @@ def _control_assessment_block(
     for control in final_view.get("control_assessment", []):
         evidence_text = "<br/>".join(f"• {item}" for item in control["evidence"])
         status_color = CONTROL_STATUS_COLORS.get(str(control["status"]), GOLD)
-        status_bg = BG_LIGHT_GOLD if status_color == GOLD else colors.HexColor("#EAF4FD") if status_color == BLUE else colors.HexColor("#EAF7EF")
-        story.append(
-            _table(
-                [
-                    [
-                        _p(f"<b>{control['label']}</b>", styles["body"]),
-                        _p(f"<font color='{_html_color(status_color)}'><b>{control['status']}</b></font>", styles["body_small"]),
-                    ],
-                    [_p(control["description"], styles["body_small"])],
-                    [_p(f"Mapped categories: {', '.join(control['categories'])}", styles["body_small"])],
-                    [_p(f"Average category score: {control['average_score']} / 5", styles["body_small"])],
-                    [_p(control["status_summary"], styles["body_muted"])],
-                    [_p(evidence_text or "No supporting evidence was surfaced for this control.", styles["body_small"])],
-                ],
-                [126 * mm, 56 * mm],
-                [
-                    ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                    ("SPAN", (0, 1), (-1, 1)),
-                    ("SPAN", (0, 2), (-1, 2)),
-                    ("SPAN", (0, 3), (-1, 3)),
-                    ("SPAN", (0, 4), (-1, 4)),
-                    ("BACKGROUND", (0, 0), (-1, 0), status_bg),
-                    ("LINEBEFORE", (0, 0), (0, -1), 3, status_color),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 10),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-                    ("TOPPADDING", (0, 0), (-1, -1), 8),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("ROUNDEDCORNERS", [4]),
-                ],
-            )
+        status_bg = CONTROL_STATUS_BACKGROUNDS.get(str(control["status"]), BG_LIGHT_GOLD)
+        header = _table(
+            [[
+                _p(
+                    f"<b>{control['label']}</b>",
+                    ParagraphStyle(
+                        "control_title",
+                        parent=styles["body"],
+                        fontName="Helvetica-Bold",
+                        fontSize=10,
+                        leading=14,
+                        textColor=TEXT_DARK,
+                    ),
+                ),
+                _p(
+                    f"<font color='{_html_color(status_color)}'><b>{control['status']}</b></font>",
+                    ParagraphStyle(
+                        "control_status",
+                        parent=styles["body_small"],
+                        fontName="Helvetica-Bold",
+                        fontSize=8,
+                        leading=11,
+                        textColor=status_color,
+                    ),
+                ),
+                _p(f"Score: {control['average_score']} / 5", styles["body_muted"]),
+                _p(f"Mapped: {', '.join(control['categories'])}", styles["body_muted"]),
+            ]],
+            [60 * mm, 34 * mm, 26 * mm, 62 * mm],
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), status_bg),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 9),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ],
         )
-        story.append(Spacer(1, 6))
+        description = _table(
+            [[_p(control["description"], styles["body_small"])]],
+            [182 * mm],
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ],
+        )
+        summary = _table(
+            [[_p(control["status_summary"], styles["body_muted"])]],
+            [182 * mm],
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), BG_SOFT),
+                ("LINEABOVE", (0, 0), (-1, 0), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ],
+        )
+        evidence = _table(
+            [
+                [_p("Supporting evidence", styles["small_label"])],
+                [_p(evidence_text or "No supporting evidence was surfaced for this control.", styles["body_small"])],
+            ],
+            [182 * mm],
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("LINEABOVE", (0, 0), (-1, 0), 0.5, BORDER),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, 0), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 2),
+                ("TOPPADDING", (0, 1), (-1, 1), 2),
+                ("BOTTOMPADDING", (0, 1), (-1, 1), 10),
+            ],
+        )
+        card = _table(
+            [[header], [description], [summary], [evidence]],
+            [182 * mm],
+            [
+                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+                ("LINEBEFORE", (0, 0), (0, -1), 3, status_color),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                ("ROUNDEDCORNERS", [6]),
+            ],
+        )
+        story.append(KeepTogether([card, Spacer(1, 6)]))
 
 
 def _alignment_block(
@@ -649,7 +823,7 @@ def _alignment_block(
     story.append(
         _table(
             [[
-                _p("Alignment status", styles["body_muted"]),
+                _p("Alignment status", styles["small_label"]),
                 _p(f"{alignment['label']} — {alignment['summary']}", styles["body"]),
             ]],
             [38 * mm, 144 * mm],
@@ -681,9 +855,9 @@ def _reviewer_card(
     summary = str(view.get("summary") or "")
     header_table = _table(
         [[
-            _p(f"<b>{view['label']}</b>", styles["section"]),
+            _p(f"<b>{view['label']}</b>", styles["reviewer_name"]),
             _p(f"<font color='{_html_color(verdict_color)}'><b>{verdict}</b></font>", styles["body"]),
-            _p(f"Confidence: {view['confidence']}", styles["body"]),
+            _p(f"Confidence: {view['confidence']}", styles["body_muted"]),
         ]],
         [68 * mm, 45 * mm, 69 * mm],
         [
@@ -700,8 +874,8 @@ def _reviewer_card(
             [_p("RISK SCORE", styles["small_label"]), _p("RISK LEVEL", styles["small_label"]), _p("CATEGORIES", styles["small_label"])],
             [
                 _p(str(view["risk_score"]), styles["metric_red"] if verdict == "Unsafe" else styles["metric_gold"]),
-                _p(str(view["risk_level"]), styles["metric_gold"]),
-                _p(" · ".join(str(item) for item in category_highlights), styles["body"]),
+                _p(str(view["risk_level"]), _risk_level_style(str(view["risk_level"]), styles)),
+                _p(" · ".join(str(item) for item in category_highlights), styles["body_muted"]),
             ],
         ],
         [32 * mm, 42 * mm, 108 * mm],
@@ -709,18 +883,18 @@ def _reviewer_card(
             ("INNERGRID", (0, 0), (-1, -1), 0.75, BORDER),
             ("LEFTPADDING", (0, 0), (-1, -1), 10),
             ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, 0), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-            ("TOPPADDING", (0, 1), (-1, 1), 14),
-            ("BOTTOMPADDING", (0, 1), (-1, 1), 14),
+            ("TOPPADDING", (0, 0), (-1, 0), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 3),
+            ("TOPPADDING", (0, 1), (-1, 1), 5),
+            ("BOTTOMPADDING", (0, 1), (-1, 1), 7),
         ],
     )
     key_risks_text = "<br/>".join(f"• {item}" for item in key_risks)
     mitigations_text = "<br/>".join(f"• {item}" for item in mitigations)
     two_col_table = _table(
         [
-            [_p("<b>Key risks</b>", styles["body"]), _p("<b>Recommendations</b>", styles["body"])],
-            [_p(key_risks_text or "No key risks recorded.", styles["body"]), _p(mitigations_text or "No recommendations recorded.", styles["body"])],
+            [_p("Key risks", styles["subhead"]), _p("Recommendations", styles["subhead"])],
+            [_p(key_risks_text or "No key risks recorded.", styles["body_small"]), _p(mitigations_text or "No recommendations recorded.", styles["body_small"])],
         ],
         [91 * mm, 91 * mm],
         [
@@ -735,7 +909,7 @@ def _reviewer_card(
         ],
     )
     summary_table = _table(
-        [[_p("Summary", styles["body_muted"]), _p(summary, styles["body_muted"])]],
+        [[_p("Summary", styles["small_label"]), _p(summary, styles["body_muted"])]],
         [22 * mm, 160 * mm],
         [
             ("BACKGROUND", (0, 0), (-1, -1), BG_SOFT),
@@ -745,22 +919,20 @@ def _reviewer_card(
             ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ],
     )
-    story.append(
-        _table(
-            [[header_table], [meta_table], [two_col_table], [summary_table]],
-            [182 * mm],
-            [
-                ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
-                ("LINEBEFORE", (0, 0), (0, -1), 3, verdict_color),
-                ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                ("TOPPADDING", (0, 0), (-1, -1), 0),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ("ROUNDEDCORNERS", [6]),
-            ],
-        )
+    card = _table(
+        [[header_table], [meta_table], [two_col_table], [summary_table]],
+        [182 * mm],
+        [
+            ("BOX", (0, 0), (-1, -1), 0.75, BORDER),
+            ("LINEBEFORE", (0, 0), (0, -1), 3, verdict_color),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ("ROUNDEDCORNERS", [6]),
+        ],
     )
-    story.append(Spacer(1, 14))
+    story.append(KeepTogether([card, Spacer(1, 10)]))
 
 
 def _required_actions_page(
@@ -775,8 +947,29 @@ def _required_actions_page(
         story.append(
             _table(
                 [[
-                    _p(str(index), ParagraphStyle("action_num", parent=styles["metric"], textColor=colors.white, alignment=TA_LEFT)),
-                    _p(f"<b>{_action_label(action, index)}</b>", ParagraphStyle("action_label", parent=styles["body"], textColor=RED)),
+                    _p(
+                        str(index),
+                        ParagraphStyle(
+                            "action_num",
+                            parent=styles["body"],
+                            fontName="Helvetica-Bold",
+                            fontSize=14,
+                            leading=18,
+                            textColor=colors.white,
+                            alignment=TA_LEFT,
+                        ),
+                    ),
+                    _p(
+                        f"<b>{_action_label(action, index)}</b>",
+                        ParagraphStyle(
+                            "action_label",
+                            parent=styles["body_small"],
+                            fontName="Helvetica-Bold",
+                            fontSize=8,
+                            leading=11,
+                            textColor=RED,
+                        ),
+                    ),
                     _p(action, styles["body"]),
                 ]],
                 [10 * mm, 32 * mm, 140 * mm],
@@ -796,7 +989,7 @@ def _required_actions_page(
     story.append(Spacer(1, 20))
     story.append(
         _table(
-            [[_p("Run metadata", styles["body_muted"]), _p(_metadata_footer(settings), styles["body_small"])]],
+            [[_p("Run metadata", styles["small_label"]), _p(_metadata_footer(settings), styles["mono"])]],
             [28 * mm, 154 * mm],
             [
                 ("LINEABOVE", (0, 0), (-1, -1), 0.75, BORDER),

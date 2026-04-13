@@ -5,6 +5,10 @@ import os
 from .base import BaseLLMClient, MissingAPIKeyError
 
 
+_OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "600"))
+_OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "2"))
+
+
 class OpenAIClient(BaseLLMClient):
     def __init__(self, model: str, api_key: str | None = None):
         super().__init__(model=model, api_key=api_key or os.getenv("OPENAI_API_KEY"))
@@ -14,7 +18,11 @@ class OpenAIClient(BaseLLMClient):
             )
         from openai import OpenAI
 
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = OpenAI(
+            api_key=self.api_key,
+            timeout=_OPENAI_TIMEOUT_SECONDS,
+            max_retries=_OPENAI_MAX_RETRIES,
+        )
 
     def generate_text(self, system_prompt: str, user_prompt: str) -> str:
         response = self.client.responses.create(

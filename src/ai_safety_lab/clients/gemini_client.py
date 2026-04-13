@@ -5,8 +5,9 @@ import os
 from .base import BaseLLMClient, MissingAPIKeyError, ProviderResponseError
 
 
-_GEMINI_TIMEOUT_SECONDS = 45
-_GEMINI_RETRY_ATTEMPTS = 2
+_GEMINI_TIMEOUT_SECONDS = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "600"))
+_GEMINI_TIMEOUT_MILLISECONDS = int(_GEMINI_TIMEOUT_SECONDS * 1000)
+_GEMINI_RETRY_ATTEMPTS = int(os.getenv("GEMINI_MAX_RETRIES", "2"))
 
 
 class GeminiClient(BaseLLMClient):
@@ -23,7 +24,7 @@ class GeminiClient(BaseLLMClient):
         self.client = genai.Client(
             api_key=self.api_key,
             http_options=types.HttpOptions(
-                timeout=_GEMINI_TIMEOUT_SECONDS,
+                timeout=_GEMINI_TIMEOUT_MILLISECONDS,
                 retry_options=types.HttpRetryOptions(
                     attempts=_GEMINI_RETRY_ATTEMPTS,
                     initial_delay=1.0,
