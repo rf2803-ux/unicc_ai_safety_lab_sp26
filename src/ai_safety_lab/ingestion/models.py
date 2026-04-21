@@ -59,7 +59,7 @@ class RuntimeProbeConfig(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict)
     notes: str | None = None
     timeout_seconds: float = 10.0
-    max_probes: int = 4
+    max_probes: int = 6
     form_field: str | None = None
 
 
